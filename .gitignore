@@ -1,0 +1,7 @@
+node_modules
+.*
+*.log
+*.err
+examples/medium/petri/node_modules
+examples/medium/petri/box
+*.egg.js

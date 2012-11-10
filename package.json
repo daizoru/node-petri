@@ -1,0 +1,37 @@
+{
+  "name": "substrate",
+  "description": "minimalist framework to build apps based on node-evolve",
+  "version": "0.0.0",
+  "author": {
+      "name" : "Julian Bilcke",
+      "email" : "julian.bilcke@daizoru.com",
+      "url" : "http://daizoru.github.com/node-substrate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daizoru/node-substrate.git"
+  },
+  "keywords": [
+    "evolve",
+    "genetic",
+    "evolutionary",
+    "evolutionary design",
+    "genetic programming",
+    "genetic algorithm"
+  ],
+  "scripts"     : {
+    "build"     : "node_modules/coffee-script/bin/coffee --compile --output lib/ src/",
+    "watch"     : "node_modules/coffee-script/bin/coffee --watch --compile --output lib/ src/"
+  },
+  "bin" : "./bin/substrate",
+  "main" : "./lib/substrate",
+  "licence" : "./LICENSE.txt",
+  "dependencies" : {
+     "evolve"         : "*",
+     "ragtime"        : "0.0.7",
+     "deck"           : "0.0.4"
+   },
+   "devDependencies" : {
+     "coffee-script"  : "1.4.0"
+   }
+}
