@@ -6,7 +6,7 @@ exports.NB_CORES = common.NB_CORES
 exports.master = master
 exports.worker = worker
 
-exports.start = start = (options={})->  # command line mode
+exports.start = start = (options={}) ->  # command line mode
   console.log "START"
   cluster = require 'cluster'
   timmy   = require 'timmy'
