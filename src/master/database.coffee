@@ -4,9 +4,7 @@ path      = require "path"
 os        = require "os"
 fs        = require "fs"
 
-deck      = require "deck"
-
-{isFunction, makeId, sha1} = require '../../common'
+{isFunction, makeId, sha1, shuffle, pick} = require '../common'
 
 
 class Database

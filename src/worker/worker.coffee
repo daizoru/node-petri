@@ -5,40 +5,39 @@ deck             = require 'deck'
 {mutable,mutate} = require 'evolve'
 timmy            = require 'timmy'
 
-{P} = require '../common'
+{P, makeId, sha1, pick} = require '../common'
+
+module.exports = (options={}) ->
+ #console.log "WORKER STARTED"
+  # worker-specific functions
+  outputs = (msg) -> process.send JSON.stringify msg
+  inputs  = (cb) -> 
+    process.on 'message', (msg) -> 
+      #console.log "worker received raw msg"
+      cb JSON.parse msg
 
 
-class Worker
-  constructor: (options={}) ->
 
-    @size = options.size ? 10
-    @max_iterations = options.max_iterations ? 2
-    @update_frequency = options.update_frequency ? 1.sec
+    size = options.size ? 10
+    max_iterations = options.max_iterations ? 2
+    update_frequency = options.update_frequency ? 1.sec
 
     memory = []
-    for i in [0...@size]
+    for i in [0...size]
       memory.push
         inputs: []
         value: Math.random()
-    @memory = memory
-
-  # this function should be passed to the evolver
-  start: =>
-
-    update_frequency = @update_frequency
-    max_iterations = @max_iterations
-    memory = @memory
+    memory = memory
 
     iterations = 0
 
-    randomNode: -> deck.pick memory
+    randomNode: -> pick memory
     
     randomIndex: -> Math.round(Math.random() * (memory.length - 1))
     
     randomInputRange: -> [0...randomIndex()]
 
     compute: ->
-
 
       console.log "computing.."
       #console.log "memory: #{inspect memory, no, 3, yes}"
@@ -86,4 +85,59 @@ class Worker
       else
         wait(update_frequency) -> compute()
 
-    compute()
+
+  
+  outputs hello: 'world'
+
+  # start listening to incoming messages
+  inputs (msg) ->
+    #console.log "master sent us #{inspect msg}"
+    genome = msg.genome
+
+    if genome?
+
+      # default values of I/O variables
+      mutation_rate = 0.05   
+      forking_rate  = 0.60
+      lifespan_rate = 0.01
+
+      #  intenal (local) variables
+      foo = 0.25  
+
+      # TODO should be the same shit
+      eval genome.src # run the evolvable kernel
+      compute()
+
+
+      mutation_rate = Math.abs mutation_rate
+      lifespan_rate = Math.abs lifespan_rate
+      forking_rate  = Math.abs forking_rate
+      
+      # eve is not killed until we fully bootstrapped the system
+      # maybe it's optional, since there will die after all,
+      # and we can achieve the same by stopping forking
+      if genome.generation > 0 and Math.random() < lifespan_rate
+        outputs die: "end of tree"
+
+      if Math.random() < forking_rate 
+        #console.log "cloning"
+        evolve.clone
+          ratio: mutation_rate
+          src: genome.src
+          onComplete: (new_src) ->
+            #console.log "sending back a new src to master"
+            outputs
+              record:
+                src: new_src
+                generation: genome.generation + 1
+                id: makeId()
+                hash: sha1 new_src
+                stats: { mutation_rate, lifespan_rate, forking_rate }
+            process.exit 0
+      else
+        process.exit 0
+    else
+      err = "error, unknow message: #{inspect msg}"
+      console.log err
+      process.exit 1
+
