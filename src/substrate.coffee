@@ -1,5 +1,5 @@
 master = require './master/master'
-morker = require './worker/worker'
+worker = require './worker/worker'
 common = require './common'
 
 exports.NB_CORES = common.NB_CORES
