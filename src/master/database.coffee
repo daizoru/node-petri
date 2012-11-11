@@ -6,8 +6,9 @@ fs        = require "fs"
 
 {isFunction, makeId, sha1, shuffle, pick} = require '../common'
 
+read_file = (f) -> fs.readFileSync input, "utf8"
 
-class Database
+class module.exports
   constructor: (@max_size=100) ->
     @_ = {}
     @length = 0
@@ -24,7 +25,7 @@ class Database
     if isFunction input
       src = file.toString()
     else
-      src  = fs.readFileSync input, "utf8"
+      src  = read_file input
       split = input.split '-'
       g = split[0]
       generation = ((Number) g) if g?
@@ -40,29 +41,31 @@ class Database
       hash: hash
       stats: {}
 
-
-  pick    :       => @_[deck.pick Object.keys @_]
   remove  : (g)   => delete @_[g.id]
   record  : (g)   => @_[g.id] = g ; @counter++
-  size    :       => Object.keys(@_).length
+  size    :       => @keys().length
   oldestGeneration: =>
     oldest = 0
     for k,v of @_
-      if v.generation > oldest
-        oldest = v.generation
+      oldest = v.generation if v.generation > oldest
     oldest
 
   # The decimator should take params,
   # to decimate in priority badly performing individual
 
+  keys: => Object.keys @_
+
+  randomKeys: => shuffle @keys()
+
+  pick: => @_[pick @keys()]
 
   decimate: =>
     size = @size()
     return if size < @max_size
     to_remove = size - @max_size
     #console.log "to remove: #{to_remove}"
-    keys = deck.shuffle Object.keys @_
-    for k in keys[0...to_remove]
+
+    for k in @randomKeys()[0...to_remove]
       #console.log "removing #{k}"
       delete @_[k]
 
@@ -74,12 +77,8 @@ class Database
     if !k? and @size() > 0
       #console.log "end of cycle. size: #{@size()}"
       @decimate()
-      #console.log "new size: #{@size()}"
-      @batch = deck.shuffle Object.keys @_
-      #console.log "new batch: #{@batch}"
-      k = @batch.pop()
-      #console.log "new next: #{k}"
+      k = @randomKeys().pop()
+
 
     @_[k]
 
-module.exports = Database

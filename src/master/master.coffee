@@ -1,18 +1,17 @@
+cluster       = require 'cluster'
 
 {repeat,wait} = require 'ragtime'
-timmy = require 'timmy'
-{isFunction, makeId, sha1, shuffle, pick} = require '../common'
-Database = require './database'
+timmy         = require 'timmy'
 
-module.exports = (cluster, options={}) ->
-  db_size = options.db_size ? 10
-  nb_cores = options.nb_cores ? 1
+Database      = require './database'
+
+
+module.exports = (options={}) ->
+  console.log "master started"
+  db_size        = options.db_size        ? 10
+  nb_cores       = options.nb_cores       ? 1
   sampling_delay = options.sampling_delay ? 2.sec
-  restart_delay = 50.ms
-
-  broadcast = (f) ->
-  for id in cluster.workers
-    f cluster.workers[id]
+  restart_delay  = 500.ms
 
   # init db
   db = new Database db_size
@@ -23,7 +22,7 @@ module.exports = (cluster, options={}) ->
 
   # helper function to send a genome to some worker
   sendGenome = (worker) ->
-    #console.log "sendGenome()"
+    console.log "sendGenome()"
     genome = db.next()
     if genome?
       #console.log "sending genome"
@@ -34,19 +33,23 @@ module.exports = (cluster, options={}) ->
       wait(restart_delay) -> sendGenome worker
 
   runWorker = ->
+    console.log "runWorker"
     worker = cluster.fork()
     worker.on 'message', (msg) ->
       msg = JSON.parse msg
       sendGenome worker       if 'hello'  of msg
       db.record msg.record    if 'record' of msg # no else, to support batch mode
       db.remove worker.genome if 'die'    of msg
-      #if 'die' of msg
-      #  console.log msg.die
+      if 'die' of msg
+        console.log "worker died: #{msg.die}"
 
   # reload workers if necessary
-  cluster.on "exit", (worker, code, signal) -> wait(restart_delay) -> runWorker() 
+  cluster.on "exit", (worker, code, signal) -> 
+    console.log "worker exited: #{code}"
+    wait(restart_delay) -> runWorker() 
 
   # run workers over CPU cores
+  console.log "nb_cores: #{nb_cores}"
   [0..nb_cores].map (i) -> runWorker()
 
   repeat sampling_delay, ->

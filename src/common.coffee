@@ -1,5 +1,6 @@
 crypto = require 'crypto'
 deck = require 'deck'
+os = require 'os'
 
 isFunction  = exports.isFunction = (obj) -> !!(obj and obj.constructor and obj.call and obj.apply)
 
@@ -14,7 +15,7 @@ sha1 = exports.sha1 = (src) ->
 P = exports.P = (p=0.5) -> +(Math.random() < p)
 
 # return nb cores - 2, to save OS cpu
-NB_CORES = exports.NB_CORES = ->
+NB_CORES = exports.NB_CORES = do ->
   cpus = Math.round(os.cpus().length)
   if (cpus < 3) then 1 else (cpus - 2)
 

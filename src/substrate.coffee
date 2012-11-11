@@ -9,7 +9,7 @@ exports.worker = worker
 exports.start = start = (options={}) ->  # command line mode
   console.log "START"
   cluster = require 'cluster'
-  timmy   = require 'timmy'
+  require 'timmy'
 
   if cluster.isMaster
     console.log "IS MASTER"
@@ -26,12 +26,10 @@ exports.start = start = (options={}) ->  # command line mode
       size             : conf.size             ? 10
       max_iterations   : conf.max_iterations   ? 2
       update_frequency : conf.update_frequency ? 1.sec
+      main: ->
+   
 
-
-# check auto-start
+# detect when run in command-line
 exec = process.argv[1]
 if 'substrate' is exec[-9..] or 'substrate.js' is exec[-11..]
-  console.log "used in command-line"
   start()
-else
-  console.log "used as a library"
