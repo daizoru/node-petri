@@ -1,10 +1,21 @@
+evolve = require 'evolve'
+
+common = require './common'
+
 master = require './master/master'
 worker = require './worker/worker'
-common = require './common'
+Simple = require './simple'
+errors = require './errors'
+Stats = require './stats'
 
 exports.NB_CORES = common.NB_CORES
 exports.master = master
 exports.worker = worker
+
+exports.Simple = Simple
+exports.Stats = Stats
+exports.errors = errors
+exports.evolve = evolve
 
 exports.start = start = (options={}) ->  # command line mode
   console.log "START"

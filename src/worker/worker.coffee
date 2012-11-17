@@ -5,7 +5,7 @@ deck             = require 'deck'
 {mutable,mutate} = require 'evolve'
 timmy            = require 'timmy'
 
-Memory           = require './memory'
+#Memory           = require './memory'
 {P, makeId, sha1, pick} = require '../common'
 
 module.exports = (options={}) ->
@@ -24,7 +24,11 @@ module.exports = (options={}) ->
   malloc = (N, f = -> 0) -> {inputs: [], value: f()} for i in [0...N]
 
   memory = malloc size, -> 0.0 # Math.random() # 0
-
+ 
+  mpick = -> pick memory
+  mget = (i) -> memory[i]
+  mrindex = -> Math.round(Math.random() * (memory.length - 1))
+  
 
   iterations = 0
 
@@ -39,7 +43,7 @@ module.exports = (options={}) ->
       if P mutable 0.20
         console.log "adding a new input"
         n.inputs.push mutable
-          input: memory.@randindex() # TODO should not be *that* random
+          input: mrandindex() # TODO should not be *that* random
           weight: Math.random() * 0.01 + 1.0
 
       if n.inputs.length
@@ -59,7 +63,7 @@ module.exports = (options={}) ->
           console.log "computing local state"
           n.value = 0
           for i in n.inputs
-            input_signal = memory.get(i.input).value
+            input_signal = mget(i.input).value
             n.value += mutable input_signal * i.weight
           if n.inputs.length > 0
             n.value = n.value / n.inputs.length

@@ -22,20 +22,20 @@ module.exports = (options={}) ->
 
   # helper function to send a genome to some worker
   sendGenome = (worker) ->
-    console.log "sendGenome()"
     genome = db.next()
     if genome?
-      #console.log "sending genome"
+      console.log "sending genome"
       worker.genome = genome
       worker.send JSON.stringify {genome}
     else
-      #console.log "error, no genome to send; retrying later"
+      console.log "error, no genome to send; retrying later"
       wait(restart_delay) -> sendGenome worker
 
   runWorker = ->
     console.log "runWorker"
     worker = cluster.fork()
     worker.on 'message', (msg) ->
+      console.log "worker replied"
       msg = JSON.parse msg
       sendGenome worker       if 'hello'  of msg
       db.record msg.record    if 'record' of msg # no else, to support batch mode
