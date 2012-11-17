@@ -9,6 +9,7 @@ errors = require './errors'
 Stats = require './stats'
 
 exports.NB_CORES = common.NB_CORES
+exports.common = common
 exports.master = master
 exports.worker = worker
 

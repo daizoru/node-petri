@@ -1,9 +1,10 @@
 {inspect} = require 'util'
+{puts} = require 'sys'
 
 Stats = require './stats'
 common = require './common'
 
-{wait} = require "timmy"
+{wait} = require "ragtime"
 
 {P,isFunction} = common
 

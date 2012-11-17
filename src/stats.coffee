@@ -1,3 +1,6 @@
+{inspect} = require 'util'
+{puts} = require 'sys'
+
 class module.exports
   constructor: (@root) ->
 
