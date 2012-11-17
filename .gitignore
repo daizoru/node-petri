@@ -2,6 +2,7 @@ node_modules
 .*
 *.log
 *.err
+examples/*
 examples/medium/petri/node_modules
 examples/medium/petri/box
 *.egg.js
