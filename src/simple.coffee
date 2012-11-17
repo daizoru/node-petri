@@ -34,7 +34,7 @@ class module.exports
             data[k] = v
         data
 
-    @stats = new Stats @
+    @stats = new Stats @, ['balance']
   
   start: =>
 
