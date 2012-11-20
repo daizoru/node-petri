@@ -2,16 +2,19 @@
 {puts} = require 'sys'
 
 class module.exports
-  constructor: (@root, @values=['energy']) ->
+  constructor: (@root, model) ->
 
-    @_ =
-      pool_size: 0
-
-    for value in @values
-      @_[value] =
-        min: undefined
-        max: undefined
-        avg: undefined
+    @pool_size = 0
+    #console.log "model: #{inspect model}"
+    @_ = {}
+    for k,v of model
+      @_[k] =
+        func: v
+        values:
+          min: +Infinity
+          max: -Infinity
+          avg: 0
+      #console.log "@_[k] = #{inspect @_[k]}"
 
   toString: =>
     inspect @_, no, 20, yes
@@ -19,27 +22,35 @@ class module.exports
   getSnapshot: => @_
     
   begin: =>
-    puts "updating stats.."
-    @_.pool_size = @root.workers.length
-    for value in @values
-      @_[value].min = undefined
-      @_[value].max = undefined
-      @_[value].avg = undefined
+    #puts "updating stats.."
+    @pool_size = @root.workers.length
+    #console.log "begin: @_ is #{inspect @_, no, 20, yes}"
+    for k,v of @_
+      #console.log "begin: #{inspect v, no, 20, yes}"
+      v.values.min = +Infinity
+      v.values.max = -Infinity
+      v.values.avg = 0
 
   measure: (worker) =>
-    for value in @values
-      sb = @_[value]
-      ab = worker[value]
+    for k,v of @_
+      #console.log "measure: #{inspect v, no, 20, yes}"
+      sb = v.values
+      ab = v.func worker
       sb.min = if sb.min? then (if ab < sb.min then ab else sb.min) else ab
       sb.max = if sb.max? then (if ab > sb.max then ab else sb.max) else ab
-  
+      sb.avg = sb.avg + ab
+      sb.avg = 0 unless isFinite sb.avg
+
   end: =>
-    for value in @values
-      if @_.pool_size then ( @_[value].avg / @_.pool_size ) else 0.0
-    puts "stats updated: #{@toString()}"
+    for k,v of @_
+      #v.values.avg = 0 unless isFinite v.values.avg
+      v.values.avg = v.values.avg / @pool_size
+      v.values.avg = 0 unless isFinite v.values.avg
+    #puts "stats updated: #{@toString()}"
 
   update: =>
     @begin()
     @measure worker for worker in @root.workers
     @end()
+    @_
 

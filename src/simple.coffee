@@ -1,12 +1,19 @@
+# STANDARD LIBRARY
 {inspect} = require 'util'
-{puts} = require 'sys'
 
-Stats = require './stats'
-common = require './common'
+# THIRD PARTIES
+{wait}    = require 'ragtime'
 
-{wait} = require "ragtime"
-
+# LOCAL FILES
+Stats     = require './stats'
+common    = require './common'
 {P,isFunction} = common
+
+debug = (msg) -> 
+  if yes
+    console.log "#{msg}"
+
+pretty = (obj) -> "#{inspect obj, no, 20, yes}"
 
 class module.exports
 
@@ -16,9 +23,9 @@ class module.exports
   # data for the next cycle in their inputs)
   constructor: (options={}) ->
 
-    @input     = options.input     ? ->
-    @output    = options.output    ? ->
+    @connector = options.connector
     @frequency = options.frequency ? 1000
+    stats = options.stats ? { energy: (worker) -> worker.energy }
 
     @workers = []
     if options.workers?
@@ -34,42 +41,41 @@ class module.exports
             data[k] = v
         data
 
-    @stats = new Stats @, ['balance']
+    @stats = new Stats @, stats
   
   start: =>
 
     # better to avoid @ in the loop
   
     frequency  = @frequency
-    inputFunc  = @input
-    outputFunc = @output
+    connector  = @connector
 
     sync = (f) => wait(@frequency) => @stats.update() ; f()
 
     iterations = 0
     do _ = => sync =>
       iterations += 1
-      puts "iteration ##{iterations}: #{@workers.length} workers remaining"
+      debug "iteration ##{iterations}: #{@workers.length} workers remaining"
       @workers = for worker in @workers
-        #puts "going to process worker #{worker}"
-        puts "preparing input data"
-        inputs = inputFunc {}, worker
-        puts "running kernel + outputs"
+        #debug "going to process worker #{worker}"
+        debug "preparing input data"
+        inputs = connector.input {}, worker
+        debug "running kernel on inputs: "+ pretty inputs
         outputs = {}
         try
           outputs = worker.kernel inputs
         catch e1
-          puts "killing individual (bad kernel: #{e1})"
+          debug "killing individual (bad kernel: #{e1})"
           continue
         try
-          outputFunc @stats, {}, worker, outputs
+          connector.output @stats, {}, worker, outputs
         catch e2
-          puts "killing individual (bad output: #{e2})"
+          debug "killing individual (bad output: #{e2})"
           continue
         worker
   
       _()
 
   decimate: =>
-    console.log "stats: #{inspect @stats}"
+    debug "stats: #{inspect @stats}"
 
