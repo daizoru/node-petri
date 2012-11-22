@@ -21,10 +21,10 @@ system = new System
 
   # stats: utility to extract some stats for each agent
   stats: 
-    balance: (agent) -> agent.balance
+    apples: (agent) -> agent.apples
 
   # agent factory: generate a list of agents
-  factory: do -> 
+  agents: do -> 
 
     # making of 10 agents
     for i in [0...10]
