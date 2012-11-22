@@ -4,7 +4,7 @@ common = require './common'
 
 master = require './master/master'
 worker = require './worker/worker'
-Simple = require './simple'
+System = require './system'
 errors = require './errors'
 Stats = require './stats'
 
@@ -13,7 +13,7 @@ exports.common = common
 exports.master = master
 exports.worker = worker
 
-exports.Simple = Simple
+exports.System = System
 exports.Stats = Stats
 exports.errors = errors
 exports.evolve = evolve

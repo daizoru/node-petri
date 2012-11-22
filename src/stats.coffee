@@ -23,7 +23,7 @@ class module.exports
     
   begin: =>
     #puts "updating stats.."
-    @pool_size = @root.workers.length
+    @pool_size = @root.agents.length
     #console.log "begin: @_ is #{inspect @_, no, 20, yes}"
     for k,v of @_
       #console.log "begin: #{inspect v, no, 20, yes}"
@@ -31,11 +31,11 @@ class module.exports
       v.values.max = -Infinity
       v.values.avg = 0
 
-  measure: (worker) =>
+  measure: (agent) =>
     for k,v of @_
       #console.log "measure: #{inspect v, no, 20, yes}"
       sb = v.values
-      ab = v.func worker
+      ab = v.func agent
       sb.min = if sb.min? then (if ab < sb.min then ab else sb.min) else ab
       sb.max = if sb.max? then (if ab > sb.max then ab else sb.max) else ab
       sb.avg = sb.avg + ab
@@ -50,7 +50,7 @@ class module.exports
 
   update: =>
     @begin()
-    @measure worker for worker in @root.workers
+    @measure agent for agent in @root.agents
     @end()
     @_
 

@@ -18,25 +18,25 @@ pretty = (obj) -> "#{inspect obj, no, 20, yes}"
 class module.exports
 
   # global (shared) data can be attached to the master
-  # this data will be accessible by workers on demand
+  # this data will be accessible by agents on demand
   # (they call a function in their outputs, and they will get
   # data for the next cycle in their inputs)
   constructor: (options={}) ->
 
     @connector = options.connector
     @frequency = options.frequency ? 1000
-    stats = options.stats ? { energy: (worker) -> worker.energy }
+    stats = options.stats ? { energy: (agent) -> agent.energy }
 
-    @workers = []
-    if options.workers?
-      _workers = options.workers
-      _workers = _workers() if isFunction _workers
-      @workers = for worker in _workers
+    @agents = []
+    if options.agents?
+      _agents = options.agents
+      _agents = _agents() if isFunction _agents
+      @agents = for agent in _agents
         data =
-          kernel: ->
-        for k, v of worker
-          if k is 'kernel'
-            data.kernel = if isFunction v then v else eval v
+          update: ->
+        for k, v of agent
+          if k is 'update'
+            data.update = if isFunction v then v else eval v
           else
             data[k] = v
         data
@@ -55,24 +55,24 @@ class module.exports
     iterations = 0
     do _ = => sync =>
       iterations += 1
-      debug "iteration ##{iterations}: #{@workers.length} workers remaining"
-      @workers = for worker in @workers
-        #debug "going to process worker #{worker}"
+      debug "iteration ##{iterations}: #{@agents.length} agents remaining"
+      @agents = for agent in @agents
+        #debug "going to process agent #{agent}"
         debug "preparing input data"
-        inputs = connector.input {}, worker
-        debug "running kernel on inputs: "+ pretty inputs
+        inputs = connector.input {}, agent
+        debug "running update function on inputs: "+ pretty inputs
         outputs = {}
         try
-          outputs = worker.kernel inputs
+          outputs = agent.update inputs
         catch e1
-          debug "killing individual (bad kernel: #{e1})"
+          debug "killing agent (bad update function: #{e1})"
           continue
         try
-          connector.output @stats, {}, worker, outputs
+          connector.output @stats, {}, agent, outputs
         catch e2
-          debug "killing individual (bad output: #{e2})"
+          debug "killing agent (bad output: #{e2})"
           continue
-        worker
+        agent
   
       _()
 
