@@ -29,9 +29,9 @@ All these tools are (or will be, in future versions) customizable or substituabl
 
     $ npm install substrate  <-- well no, it's not here yet.
 
-## Usage
+## Documentation
 
-To be continued. For the moment please see the examples.
+To be continued
 
 ## Changelog
 

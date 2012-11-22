@@ -2,13 +2,18 @@
 {inspect,log} = require 'util'
 {puts} = require 'sys'
 
+# NODE-SUBSTRATE:
 substrate = require 'substrate'
 
-# extract only the tools we need from substrate
-{Stats, Simple} = substrate
+# - ERROR TOOLS
 {trivial, minor, major} = substrate.errors
-{P, copy} = substrate.common
+
+# - EVOLUTIONARY TOOLS
 {mutate,mutable}  = substrate.evolve
+
+# - MISC UTILS
+{P, copy} = substrate.common
+
 system = new System
 
   # what connect the agent to the external world
