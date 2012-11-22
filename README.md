@@ -8,7 +8,9 @@
 
 Substrate is a work-in-progress, alpha framework to bootstrap the development of multi-agent systems on the Node plateform. 
 
-It is based on node-evolve, a library to do Genetic Programming in JavaScript.
+It is based on node-evolve, a library to do Genetic Programming in JavaScript. 
+That means you can generate cpu-optimized algorithms, that run from mobile
+to browser to "node.js cloud" servers.
 
 The name substrate has been chosen as a substitute for "agar agar", a biomaterial used to cultivate bacterias in vitro.
 
