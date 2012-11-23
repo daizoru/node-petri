@@ -51,11 +51,7 @@ sim.on 'data', (events) ->
 # SERVER DIED OR DISCONNECTED US
 sim.on 'end', -> console.log "disconnected from server"
 
-# DEFINITION OF THE CONNECTOR / INTERFACE 
-# the agent may be kept unchanged, yet its environment
-# can change - eg "dev", "simulation" or "production" envs.
-# that's why inputs and outputs are kept separated
-# you may have many implementations of theses
+# ENVIRONMENT
 module.exports =
 
   # INPUT (PRE-PROCESSOR)

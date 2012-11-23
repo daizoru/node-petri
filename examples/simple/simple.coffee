@@ -14,10 +14,10 @@ substrate = require 'substrate'
 # - MISC UTILS
 {P, copy} = substrate.common
 
-system = new System
+system = new substrate.System
 
   # what connect the agent to the external world
-  connector: require './interfaces/simulation'
+  environment: require './interfaces/simulation'
 
   # stats: utility to extract some stats for each agent
   stats: 

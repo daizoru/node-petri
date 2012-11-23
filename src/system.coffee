@@ -1,5 +1,6 @@
 # STANDARD LIBRARY
 {inspect} = require 'util'
+cluster = require 'cluster'
 
 # THIRD PARTIES
 {wait}    = require 'ragtime'
@@ -15,6 +16,10 @@ debug = (msg) ->
 
 pretty = (obj) -> "#{inspect obj, no, 20, yes}"
 
+#
+#  TODO run all of this code in a sub-worker
+# but then we need a broadcast mechanism for
+# 
 class module.exports
 
   # global (shared) data can be attached to the master
@@ -23,7 +28,7 @@ class module.exports
   # data for the next cycle in their inputs)
   constructor: (options={}) ->
 
-    @connector = options.connector
+    @environment = options.environment
     @frequency = options.frequency ? 1000
     stats = options.stats ? { energy: (agent) -> agent.energy }
 
@@ -48,7 +53,7 @@ class module.exports
     # better to avoid @ in the loop
   
     frequency  = @frequency
-    connector  = @connector
+    environment  = @environment
 
     sync = (f) => wait(@frequency) => @stats.update() ; f()
 
@@ -59,7 +64,7 @@ class module.exports
       @agents = for agent in @agents
         #debug "going to process agent #{agent}"
         debug "preparing input data"
-        inputs = connector.input {}, agent
+        inputs = environment.input {}, agent
         debug "running update function on inputs: "+ pretty inputs
         outputs = {}
         try
@@ -68,7 +73,7 @@ class module.exports
           debug "killing agent (bad update function: #{e1})"
           continue
         try
-          connector.output @stats, {}, agent, outputs
+          environment.output @stats, {}, agent, outputs
         catch e2
           debug "killing agent (bad output: #{e2})"
           continue

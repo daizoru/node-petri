@@ -24,10 +24,9 @@ substrate = require 'substrate'
 model = require './model'
 
 main = ->
-  system = new System
+  system = new substrate.System
 
-    # connect to an interface
-    connector: require './simulated'
+    environment: require './simspark'
 
     # TODO maybe we don't need this?
     stats:
