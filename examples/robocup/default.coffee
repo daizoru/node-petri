@@ -1,6 +1,7 @@
 
 class module.exports
-  constructor: (on, emit, options={}) ->
+  constructor: (src, on, emit, options={}) ->
+
     # since a player is serialized, we need to 
     # put the imports inside the object
     SimSpark = require 'simspark'
@@ -11,6 +12,9 @@ class module.exports
     {mutate,mutable}        = substrate.evolve # - EVOLUTIONARY TOOLS
     {P, copy}               = substrate.common # - MISC UTILS
 
+    alert  = (msg) -> emit log: level: 0, msg: "ALERT #{msg}"
+    info   = (msg) -> emit log: level: 1, msg: "INFO #{msg}"
+    debug  = (msg) -> emit log: level: 2, msg: "DEBUG #{msg}"
     pretty = (obj) -> "#{inspect obj, no, 20, yes}"
     
     config =
@@ -31,7 +35,7 @@ class module.exports
     simspark = new SimSpark config.server.host, config.server.port
 
     client.on 'connect', ->
-      console.log "connected! sending messages.."
+      debug "connected! sending messages.."
 
       # SEND INITIALIZATION DATA TO SIMULATION
       simspark.send [
@@ -43,7 +47,7 @@ class module.exports
       #sim.send ['beam', 10.0, -10.0, 0.0 ]
 
     simspark.on 'data', (events) ->
-      console.log "received new events.."
+      debug "received new events.."
       # we intercept special/important events, to know when to stop
       #for p in events
       #  if p[0] in ['GS','AgentState']
@@ -55,7 +59,7 @@ class module.exports
       journal.pop() if journal.length > config.engine.journalSize
 
     simspark.on 'end', -> 
-      console.log "disconnected from server"
+      emit 'log': "disconnected from server"
       run = no
 
     do main = ->
@@ -64,17 +68,21 @@ class module.exports
       # CLEAN EXIT #
       ##############
       unless run
-        console.log "exiting properly"
+        emit 'log': "exiting properly"
         simspark.destroy()
         journal = []
         # TODO: send message to host?
-        emit die: 0
+        emit 'die': 0
         wait(500) -> process.exit 0
         return
 
       #############
       # MAIN CODE #
       #############
+
+      if Maths.random() < 0.50
+        emit 'fork': src
+
       messages = []
 
       #out.push ['lae3', 5.3]
