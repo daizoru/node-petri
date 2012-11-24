@@ -19,10 +19,21 @@ System
     
     portfolio: {}
     history: []
-    
+
     interval: 1.sec
 
     geekdaq:
+      updateInterval: 500
       commissions:
         buy: 0.30
         sell: 0.30
+      tickers: [ 
+        'PEAR'
+        'JS'
+        'LISP'
+        'PERL'
+        'RUBY'
+        'NET'
+        'JAVA'
+        'CAFE'
+      ]

@@ -4,7 +4,7 @@ module.exports = (master, options={}) ->
   {alert, info, debug}  = master.logger
   SimSpark             = require 'simspark'
   {repeat,wait}        = require 'ragtime'
-  {mutate, mutable}    = require 'evolve'
+  {mutable, clone}     = require 'evolve'
   substrate            = require 'substrate'
   {P, copy, pretty}    = substrate.common
  
@@ -43,7 +43,7 @@ module.exports = (master, options={}) ->
     #sim.send ['beam', 10.0, -10.0, 0.0 ]
 
   simspark.on 'data', (events) ->
-    debug "received new events.."
+    debug "received new events.." if P 0.10
     # we intercept special/important events, to know when to stop
     #for p in events
     #  if p[0] in ['GS','AgentState']
@@ -77,8 +77,8 @@ module.exports = (master, options={}) ->
     # MAIN CODE #
     #############
 
-    if P mutable 0.50
-      log "reproducing"
+    if P mutable 0.20
+      debug "reproducing"
       clone 
         src       : module.exports.toString()
         ratio     : 0.01

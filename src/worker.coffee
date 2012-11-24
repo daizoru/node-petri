@@ -1,10 +1,10 @@
 
-cluster          = require 'cluster'
-{inspect}        = require 'util'
-deck             = require 'deck'
-{map,wait}       = require 'ragtime'
-{mutable,mutate} = require 'evolve'
-timmy            = require 'timmy'
+cluster           = require 'cluster'
+{inspect}         = require 'util'
+deck              = require 'deck'
+{map,wait,repeat} = require 'ragtime'
+{mutable,mutate}  = require 'evolve'
+timmy             = require 'timmy'
 
 {P, makeId, sha1, pick, pretty} = require './common'
 
@@ -13,9 +13,11 @@ agent = undefined
 module.exports = (options={}) ->
 
   agentConfigurator = options.config 
+
   logLevel = options.logLevel ? 0
 
-  console.log "WORKER STARTED"
+  log = (msg) -> console.log "(WORKER #{process.pid}) #{msg}"
+  log "STARTED"
   
   # send a message to the master
   send = (msg) -> process.send JSON.stringify msg
@@ -23,33 +25,36 @@ module.exports = (options={}) ->
   process.on 'message', (msg) -> 
 
     agentMeta = JSON.parse msg
-    console.log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta}"
+    #log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta}"
+    agentName = "#{agentMeta.id}"[...3] + ".." + "#{agentMeta.id}"[-3..]
 
     master =
 
       # agent's event emitter
       send: (msg) ->
-        console.log "EMIT"
-        if 'log' in msg
+        if 'log' of msg
           level = msg.log.level ? 0
-          msg = msg.log.msg ? ''
+          logmsg = msg.log.msg ? ''
           if logLevel <= level
-            console.log "#{msg}"
+            log "(AGENT #{agentName}) #{logmsg}"
 
-        if 'die' in msg 
-          console.log "AGENT DIE:"
+        else if 'die' of msg 
+          log "DIE"
           # genetic death
           if agentMeta.generation >  0
             send die: "end of tree"
 
-        if 'fork' in msg
+        else if 'fork' of msg
           src = msg.fork
-          console.log "AGENT FORK"
+          log "FORK"
           send 'fork':
             id: makeId()
             generation: agentMeta.generation + 1
             hash: sha1 src
             src: src
+        else
+          #log "forwarding unknow message to master: #{pretty msg}"
+          send msg
 
     master.logger =
       alert: (msg) -> master.send log: level: 0, msg: "ALERT #{msg}"
@@ -58,12 +63,12 @@ module.exports = (options={}) ->
     
     # create an instance of the serialized agent
     config = agentConfigurator agentMeta
-    console.log "agent config: #{inspect config, no, 20, yes}"
+    #console.log "agent config: #{inspect config, no, 20, yes}"
 
-    console.log "evaluating agent"
+    #console.log "evaluating agent"
     # try
     eval "var Agent = #{agentMeta.src};"
-    console.log "created Agent: #{pretty Agent}"
+    #console.log "created Agent: #{pretty Agent}"
     Agent master, config
     # catch
     # we should catch exception, and report to the master
@@ -71,4 +76,10 @@ module.exports = (options={}) ->
     # the the maximum level of error will be applied by the master
     # and the genome will be removed from the database
 
+    # meanwhile, we also send an heartbeat to the master
+    # of no heartbeat are heard for 20 secs, we should kill the worker
+    repeat 5000, -> send 'heartbeat': 'heartbeat'
+
   send 'ready': 0
+
+  'on': (key) -> # workers can't be listened to
