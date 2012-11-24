@@ -16,10 +16,11 @@ system = new System
   decimationTrigger: 10
   
   config: (agent) ->
-    
+
     portfolio: {}
     history: []
     balance: 100000
+    interval: 1.sec
       
 system.start()
 

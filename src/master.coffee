@@ -93,5 +93,3 @@ module.exports = (options={}) ->
     console.log "  db size: #{database.size()}"
     console.log "  counter: #{database.counter}"
   console.log "  oldest : #{database.oldestGeneration()}\n"
-
-module.exports = Master
