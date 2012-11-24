@@ -6,11 +6,9 @@
 timmy            = require 'timmy'
 {System, common} = require 'substrate'
 
-system = new System
+System
 
-  bootstrap: [
-    require './default'
-  ]
+  bootstrap: [ require './model' ]
 
   workersByMachine: 1 # common.NB_CORES
   decimationTrigger: 10
@@ -21,6 +19,3 @@ system = new System
     history: []
     balance: 100000
     interval: 1.sec
-      
-system.start()
-

@@ -3,19 +3,15 @@ module.exports = (master, options={}) ->
 
   # since a player is serialized, we need to 
   # put the imports inside the object
-  SimSpark         = require 'simspark'
-  {repeat}         = require 'ragtime'
-  {mutate, mutable, include} = require 'evolve'
-  substrate        = require 'substrate'
+  SimSpark          = require 'simspark'
+  {repeat,wait}     = require 'ragtime'
+  {mutate, mutable} = require 'evolve'
+  substrate         = require 'substrate'
 
   {trivial, minor, major} = substrate.errors # - ERROR TOOLS
-  {P, copy}               = substrate.common # - MISC UTILS
+  {P, copy, pretty}       = substrate.common # - MISC UTILS
+  {alert, info, debug}    = master.logger
 
-  alert  = (msg) -> master.send log: level: 0, msg: "ALERT #{msg}"
-  info   = (msg) -> master.send log: level: 1, msg: "INFO #{msg}"
-  debug  = (msg) -> master.send log: level: 2, msg: "DEBUG #{msg}"
-  pretty = (obj) -> "#{inspect obj, no, 20, yes}"
-  
   config =
     server:
       host  : options.server?.host ? "localhost"

@@ -6,7 +6,7 @@ deck             = require 'deck'
 {mutable,mutate} = require 'evolve'
 timmy            = require 'timmy'
 
-{P, makeId, sha1, pick} = require './common'
+{P, makeId, sha1, pick, pretty} = require './common'
 
 agent = undefined
 
@@ -54,6 +54,10 @@ module.exports = (options={}) ->
             generation: agentMeta.generation + 1
             hash: sha1 src
             src: src
+
+    master.alert  = (msg) -> master.send log: level: 0, msg: "ALERT #{msg}"
+    master.info   = (msg) -> master.send log: level: 1, msg: "INFO #{msg}"
+    master.debug  = (msg) -> master.send log: level: 2, msg: "DEBUG #{msg}"
 
     # create an instance of the serialized agent
     config = agentConfigurator agentMeta

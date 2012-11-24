@@ -6,8 +6,6 @@ fs        = require "fs"
 
 {isFunction, makeId, sha1, shuffle, pick} = require './common'
 
-read_file = (f) -> fs.readFileSync input, "utf8"
-
 class module.exports
   constructor: (@max_size=100) ->
     @_ = {}

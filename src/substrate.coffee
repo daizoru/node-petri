@@ -20,12 +20,6 @@ exports.errors   = errors
 
 class System
   constructor: (options={}) ->
-
-    if cluster.isMaster
-      console.log "IS MASTER"
-      master options
-    else
-      console.log "IS WORKER"
-      worker options
+    (if cluster.isMaster then Master else Worker) options
 
 exports.System = System
