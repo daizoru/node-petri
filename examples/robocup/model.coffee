@@ -1,15 +1,17 @@
 
 module.exports = (master, options={}) ->
 
+  substrate               = require 'substrate'
+  {P, copy, pretty}       = substrate.common # - MISC UTILS
+
+  console.log "master: #{pretty master}"
+  {alert, info, debug}    = master.logger
+
   # since a player is serialized, we need to 
   # put the imports inside the object
   SimSpark          = require 'simspark'
   {repeat,wait}     = require 'ragtime'
   {mutate, mutable} = require 'evolve'
-
-  substrate               = require 'substrate'
-  {P, copy, pretty}       = substrate.common # - MISC UTILS
-  {alert, info, debug}    = master.logger
 
   # errors cost agent money
   {trivial, minor, major} = substrate.errors (value, msg) ->
@@ -58,8 +60,9 @@ module.exports = (master, options={}) ->
     journal.unshift events
     journal.pop() if journal.length > config.engine.journalSize
 
+  run = yes
   simspark.on 'end', -> 
-    log "disconnected from server"
+    info "disconnected from server"
     run = no
 
   do main = ->
@@ -68,11 +71,11 @@ module.exports = (master, options={}) ->
     # CLEAN EXIT #
     ##############
     unless run
-      log "exiting properly"
+      info "exiting properly"
       simspark.destroy()
       journal = []
       # TODO: send message to host?
-      master.send 'die': 0
+      master.send die: 0
       wait(500) -> process.exit 0
       return
 
@@ -80,10 +83,15 @@ module.exports = (master, options={}) ->
     # MAIN CODE #
     #############
 
-    if Maths.random() < 0.50
-      # TODO inline a mutation sequence
-
-      master.send mutate src: module.exports.toString()
+    if P mutable 0.50
+      log "reproducing"
+      clone 
+        src       : module.exports.toString()
+        ratio     : 0.01
+        iterations:  2
+        onComplete: (src) ->
+          debug "sending fork event"
+          master.send fork: src
 
     messages = []
 

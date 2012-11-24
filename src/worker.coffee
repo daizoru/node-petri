@@ -12,7 +12,6 @@ agent = undefined
 
 module.exports = (options={}) ->
 
-  Environment = options.environment
   agentConfigurator = options.config 
   logLevel = options.logLevel ? 0
 
@@ -22,9 +21,9 @@ module.exports = (options={}) ->
   send = (msg) -> process.send JSON.stringify msg
   
   process.on 'message', (msg) -> 
-    console.log "WORKER RECEIVED AGENT FROM MASTER: #{msg}"
 
     agentMeta = JSON.parse msg
+    console.log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta}"
 
     master =
       # not implemented
@@ -32,7 +31,7 @@ module.exports = (options={}) ->
         throw new Error "Not Implemented"
 
       # agent's event emitter
-      emit: (msg) ->
+      'emit': (msg) ->
         console.log "EMIT"
         if 'log' in msg
           level = msg.log.level ? 0
@@ -55,19 +54,24 @@ module.exports = (options={}) ->
             hash: sha1 src
             src: src
 
-    master.alert  = (msg) -> master.send log: level: 0, msg: "ALERT #{msg}"
-    master.info   = (msg) -> master.send log: level: 1, msg: "INFO #{msg}"
-    master.debug  = (msg) -> master.send log: level: 2, msg: "DEBUG #{msg}"
-
+    master.logger =
+      alert: (msg) -> master.send log: level: 0, msg: "ALERT #{msg}"
+      info : (msg) -> master.send log: level: 1, msg: "INFO #{msg}"
+      debug: (msg) -> master.send log: level: 2, msg: "DEBUG #{msg}"
+    
     # create an instance of the serialized agent
     config = agentConfigurator agentMeta
     console.log "agent config: #{inspect config, no, 20, yes}"
 
     console.log "evaluating agent"
     # try
-    agent = eval(agentMeta.src) master, agentMeta.options
+    eval "var Agent = #{agentMeta.src};"
+    console.log "created Agent: #{pretty Agent}"
+    Agent master, config
     # catch
     # we should catch exception, and report to the master
     # if the exception cannot be catch (fatal error of the V8 VM)
     # the the maximum level of error will be applied by the master
     # and the genome will be removed from the database
+
+  send 'ready': 0

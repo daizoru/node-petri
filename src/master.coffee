@@ -21,9 +21,8 @@ pretty = (obj) -> "#{inspect obj, no, 20, yes}"
 
 
 module.exports = (options={}) ->
-  console.log "master started"
+  console.log "master started with options: "+pretty options
 
-  environment       = options.environment
   workersByMachine  = options.workersByMachine  ? common.NB_CORES
   decimationTrigger = options.decimationTrigger ? 10
   frequency         = options.frequency         ? 1000
@@ -33,10 +32,12 @@ module.exports = (options={}) ->
 
   # init db
   database = new Database databaseSize
-  agents = options.agents ? []
+
+  bootstrap = options.bootstrap ? []
 
   # load agents
-  for agent in agents
+  console.log "loading #{bootstrap.length} agents"
+  for agent in bootstrap
     database.add agent
 
   # bind stats to database
@@ -45,30 +46,31 @@ module.exports = (options={}) ->
   spawn = ->
     console.log "spawn"
     worker = cluster.fork()
-
-    worker.on 'online', ->
-      agent = database.next()
-      if agent?
-        console.log "sending agent"
-        worker.agent = agent
-        worker.send JSON.stringify agent
-      else
-        console.log "error, no agent to send. system will shutdown."
-        for worker in cluster.workers
-          worker.destroy()
-        process.exit 0
-
+    send = (msg) -> worker.send JSON.stringify msg
 
     worker.on 'message', (msg) ->
       console.log "worker replied: #{msg}"
       msg = JSON.parse msg
+      if 'ready' of msg
+        console.log "worker said hello, sending genome"
+        agent = database.next()
+        if agent?
+          console.log "sending agent program to worker process"
+          worker.agent = agent
+          send agent
+        else
+          console.log "error, no more agent to send. system will shutdown."
+          for worker in cluster.workers
+            worker.destroy()
+          process.exit 0
 
       if 'fork' of msg
+        console.log "agent want to fork"
         database.record msg.fork
 
       if 'die' of msg
+        console.log "agent want to die: #{msg.die}"
         database.remove worker.agent
-        console.log "worker died: #{msg.die}"
 
   # reload workers if necessary
   cluster.on "exit", (worker, code, signal) -> 
@@ -85,10 +87,12 @@ module.exports = (options={}) ->
     console.log "random individual:"
     console.log "  hash:     : #{g.hash}"
     console.log "  generation: #{g.generation}"
+    ###
     console.log "   parent stats:"
     console.log "    forking   : #{g.stats.forking_rate}"
     console.log "    mutation  : #{g.stats.mutation_rate}"
     console.log "    lifespan  : #{g.stats.lifespan_rate}\n"
+    ###
     console.log " general stats:"
     console.log "  db size: #{database.size()}"
     console.log "  counter: #{database.counter}"

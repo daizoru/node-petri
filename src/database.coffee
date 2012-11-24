@@ -4,7 +4,7 @@ path      = require "path"
 os        = require "os"
 fs        = require "fs"
 
-{isFunction, makeId, sha1, shuffle, pick} = require './common'
+{isFunction, isString, makeId, sha1, shuffle, pick} = require './common'
 
 class module.exports
   constructor: (@max_size=100) ->
@@ -19,17 +19,12 @@ class module.exports
     delete @_[id]
     
   add: (agent) =>
-    src = ""
-    dat = for k,v of agent
-      if k is 'main'
-        dat[k] = src = v.toString()
-      else
-        dat[k] = v
-    dat.generation ?= 0
-    dat.hash = sha1 src
-    dat.id ?= makeId()
-
-    @record dat
+    id = agent.id ? makeId()
+    src = agent.src ? agent
+    generation = agent.generation ? 0
+    src = src.toString() if isFunction src
+    hash = sha1 src
+    @record {id, src, hash, generation}
 
   record  : (g)     => @_[g.id] = g ; @counter++
   size    :         => @keys().length
