@@ -1,53 +1,33 @@
 #!/usr/bin/env coffee
 
 # STANDARD LIB
-{inspect,log} = require 'util'
-{puts} = require 'sys'
+{inspect} = require 'util'
 
 # THIRD PARTIES
-# {foreach,map,reduce,delay,async,wait} = require 'ragtime'
-timmy = require 'timmy'
-
-# NODE-SUBSTRATE:
+timmy    = require 'timmy'
 substrate = require 'substrate'
 
-# - ERROR TOOLS
-{trivial, minor, major} = substrate.errors
+system = new substrate.System
+  bootstrap: [ 
+    require('./default') 
+  ]
+  workersByMachine: 1 # substrate.common.NB_CORES
+  decimationTrigger: 10
 
-# - EVOLUTIONARY TOOLS
-{mutate,mutable}  = substrate.evolve
+  # called to create agents on worker instances
+  factory: (agent) ->
+    Player = eval agent.src
+    new Player
+      server:
+        host: 'localhost'
+        port: 3100
+      game:
+        scene: 'rsg/agent/nao/nao.rsg'
+        team  : 'Daizoru'
+        number: 0
+      engine:
+        updateInterval: 1000
+        journalSize: 50
+        journal: []
 
-# - MISC UTILS
-{P, copy} = substrate.common
-
-
-model = require './model'
-
-main = ->
-  system = new substrate.System
-
-    environment: require './simspark'
-
-    # TODO maybe we don't need this?
-    stats:
-      #temp:    (agent) -> agent.temp
-      battery: (agent) -> agent.battery
-
-
-    # TODO WRITE THE UPDATE FUNCTION
-    agents: []
-
-
-  # WORKFLOW:
-
-  # 1. run the rcssserver3d
-
-  # 2. run the monitor?
-
-  # 3. run this:
-  system.start()
-
-  #. 4. "blow the whistle"
-  # in monitor: press K to kick off and start the first period of the game. 
-  # The game time will start counting up and the play mode will change from 
-  # BeforeKickOff to KickOff. Game on!
+system.start()
