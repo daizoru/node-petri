@@ -1,29 +1,25 @@
 evolve = require 'evolve'
 
-common = require './common'
-
-master = require './master/master'
-worker = require './worker/worker'
-System = require './system'
-errors = require './errors'
-Stats = require './stats'
+common   = require './common'
+Database = require './database'
+System   = require './system'
+errors   = require './errors'
+Stats    = require './stats'
 
 exports.NB_CORES = common.NB_CORES
-exports.common = common
-exports.master = master
-exports.worker = worker
+exports.common   = common
 
-exports.System = System
-exports.Stats = Stats
-exports.errors = errors
-exports.evolve = evolve
+exports.Database = Database
+exports.System   = System
+exports.Stats    = Stats
+exports.errors   = errors
+exports.evolve   = evolve
 
+###
 exports.start = start = (options={}) ->  # command line mode
   console.log "START"
-  cluster = require 'cluster'
-  require 'timmy'
 
-  if cluster.isMaster
+  if require('cluster').isMaster
     console.log "IS MASTER"
     conf = options.master ? {}
     master 
@@ -40,8 +36,8 @@ exports.start = start = (options={}) ->  # command line mode
       update_frequency : conf.update_frequency ? 1.sec
       main: ->
    
-
+###
 # detect when run in command-line
-exec = process.argv[1]
-if 'substrate' is exec[-9..] or 'substrate.js' is exec[-11..]
-  start()
+##exec = process.argv[1]
+##if 'substrate' is exec[-9..] or 'substrate.js' is exec[-11..]
+##  start()

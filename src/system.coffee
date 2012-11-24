@@ -28,9 +28,20 @@ class module.exports
   # data for the next cycle in their inputs)
   constructor: (options={}) ->
 
+    if cluster.isMaster
+      console.log "IS MASTER"
+
+    else
+      console.log "WORKER - ASKING MASTER FOR ORDERS"
+
     @environment = options.environment
     @frequency = options.frequency ? 1000
     stats = options.stats ? { energy: (agent) -> agent.energy }
+
+    @nbWorkers = options.workersByMachine ? common.NB_CORES
+
+    @decimationTrigger = options.decimationTrigger ? 10
+
 
     @agents = []
     if options.agents?

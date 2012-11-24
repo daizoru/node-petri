@@ -22,6 +22,7 @@ isNumber    = exports.isNumber = (obj) -> (obj is +obj) or toString.call(obj) is
 isBoolean   = exports.isBoolean = (obj) -> obj is true or obj is false
 isString    = exports.isString = (obj) -> !!(obj is '' or (obj and obj.charCodeAt and obj.substr))
 
+toStr = exports.toStr = (func) -> func.toString()
 
 # return nb cores - 2, to save OS cpu
 NB_CORES = exports.NB_CORES = do ->
