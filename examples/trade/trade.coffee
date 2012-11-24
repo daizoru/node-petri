@@ -15,7 +15,14 @@ System
   
   config: (agent) ->
 
+    balance: 100000
+    
     portfolio: {}
     history: []
-    balance: 100000
+    
     interval: 1.sec
+
+    geekdaq:
+      commissions:
+        buy: 0.30
+        sell: 0.30

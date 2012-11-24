@@ -26,12 +26,9 @@ module.exports = (options={}) ->
     console.log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta}"
 
     master =
-      # not implemented
-      'on': (msg) ->
-        throw new Error "Not Implemented"
 
       # agent's event emitter
-      'emit': (msg) ->
+      send: (msg) ->
         console.log "EMIT"
         if 'log' in msg
           level = msg.log.level ? 0

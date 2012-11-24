@@ -1,23 +1,14 @@
 
 module.exports = (master, options={}) ->
 
-  substrate               = require 'substrate'
-  {P, copy, pretty}       = substrate.common # - MISC UTILS
-
-  console.log "master: #{pretty master}"
-  {alert, info, debug}    = master.logger
-
-  # since a player is serialized, we need to 
-  # put the imports inside the object
-  SimSpark          = require 'simspark'
-  {repeat,wait}     = require 'ragtime'
-  {mutate, mutable} = require 'evolve'
-
-  # errors cost agent money
-  {trivial, minor, major} = substrate.errors (value, msg) ->
-    log "$#{value} error, #{msg}"
-    energy -= value
-    log "new agent balance: #{balance}"
+  {alert, info, debug}  = master.logger
+  SimSpark             = require 'simspark'
+  {repeat,wait}        = require 'ragtime'
+  {mutate, mutable}    = require 'evolve'
+  substrate            = require 'substrate'
+  {P, copy, pretty}    = substrate.common
+ 
+  MUTABLE = mutable
 
   config =
     server:
@@ -31,6 +22,9 @@ module.exports = (master, options={}) ->
       updateInterval: options.engine?.updateInterval ? 1000
       journalSize   : options.engine?.journalSize    ? 50
       journal       : options.engine?.journal        ? []
+
+  health = 10000
+  ERR = substrate.errors (value, msg) -> health -= value ; msg
 
   journal = config.engine.journal
 
