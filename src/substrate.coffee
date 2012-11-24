@@ -18,8 +18,5 @@ exports.common   = common
 exports.Stats    = Stats
 exports.errors   = errors
 
-class System
-  constructor: (options={}) ->
-    (if cluster.isMaster then Master else Worker) options
-
-exports.System = System
+exports.System = (options={}) ->
+  (if cluster.isMaster then Master else Worker) options

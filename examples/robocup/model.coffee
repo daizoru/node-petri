@@ -6,11 +6,16 @@ module.exports = (master, options={}) ->
   SimSpark          = require 'simspark'
   {repeat,wait}     = require 'ragtime'
   {mutate, mutable} = require 'evolve'
-  substrate         = require 'substrate'
 
-  {trivial, minor, major} = substrate.errors # - ERROR TOOLS
+  substrate               = require 'substrate'
   {P, copy, pretty}       = substrate.common # - MISC UTILS
   {alert, info, debug}    = master.logger
+
+  # errors cost agent money
+  {trivial, minor, major} = substrate.errors (value, msg) ->
+    log "$#{value} error, #{msg}"
+    energy -= value
+    log "new agent balance: #{balance}"
 
   config =
     server:
