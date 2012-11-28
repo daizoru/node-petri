@@ -8,7 +8,7 @@ timmy            = require 'timmy'
 
 System
 
-  bootstrap: [ require './model' ]
+  bootstrap: [ require './player' ]
 
   workersByMachine: 1 # common.NB_CORES
   decimationTrigger: 10

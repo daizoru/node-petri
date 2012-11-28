@@ -69,7 +69,7 @@ module.exports = (options={}) ->
     # try
     eval "var Agent = #{agentMeta.src};"
     #console.log "created Agent: #{pretty Agent}"
-    Agent master, config
+    Agent master, agentMeta.src, config
     # catch
     # we should catch exception, and report to the master
     # if the exception cannot be catch (fatal error of the V8 VM)

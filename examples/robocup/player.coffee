@@ -1,5 +1,5 @@
 
-module.exports = (master, options={}) ->
+module.exports = (master, source, options={}) ->
 
   {alert, info, debug}  = master.logger
   SimSpark             = require 'simspark'
@@ -8,8 +8,6 @@ module.exports = (master, options={}) ->
   substrate            = require 'substrate'
   {P, copy, pretty}    = substrate.common
  
-  MUTABLE = mutable
-
   config =
     server:
       host  : options.server?.host ? "localhost"
@@ -80,7 +78,7 @@ module.exports = (master, options={}) ->
     if P mutable 0.20
       debug "reproducing"
       clone 
-        src       : module.exports.toString()
+        src       : source
         ratio     : 0.01
         iterations:  2
         onComplete: (src) ->
