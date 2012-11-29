@@ -1,3 +1,5 @@
+examples/flightquest/data
+.DS_Store
 node_modules
 .*
 *.log
