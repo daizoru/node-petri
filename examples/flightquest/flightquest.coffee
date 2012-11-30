@@ -8,7 +8,7 @@ timmy            = require 'timmy'
 
 System
 
-  bootstrap: [ require './algorithm' ]
+  bootstrap: [ require './agent' ]
 
   workersByMachine: 1 # common.NB_CORES
   decimationTrigger: 10
@@ -16,6 +16,5 @@ System
   config: (agent) ->
     data:
       training: [
-        'data/training/SingleTrainingDay'
       ]
     updateInterval: 1.sec
