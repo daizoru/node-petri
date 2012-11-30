@@ -1,37 +1,90 @@
-# data is too big to fit in memory so we will keep it
-# in a big database, and agents will access it
+#!/usr/bin/env coffee
 
-fs = require 'fs'
+#########################
+# STANDARD NODE LIBRARY #
+#########################
+fs        = require 'fs'
+{inspect} = require 'util'
 
-redis = require 'redis'
-csv = require 'csv'
+#################
+# THIRD-PARTIES #
+#################
+redis     = require 'redis'
+csv       = require 'csv'
 
-db = redis.createClient()
-# we don't need to wait for connect/ready event,
-# since node-redis will buffer commands until it can
-# communicate with the server. 
+##############################
+# ESTABLISH CONNECTION TO DB #
+##############################
+db = redis.createClient() # will buffer commands until connection
 db.on "error", (err) ->
   console.log "Redis error: " + err
 
-inputFilePath = __dirname + "/"
-inputFilePath += "data/training/SingleTrainingDay_2012_11_20/"
-inputFilePath += "metar/flightstats_metarreports_combined.csv"
+############################
+# SIMPLE UTILITY FUNCTIONS #
+############################
+pretty = (obj) -> "#{inspect obj, no, 20, yes}"
+Array::sample = (size=30) -> 
+  if @length then (@[i] for i in [0...@length] by Math.round @length / size) else @
 
-quit = ->
+quit = (code=0) ->
   console.log "exiting"
-  db.quit()
+  db?.quit?()
+  process.exit code
 
-inputStream = fs.createReadStream inputFilePath
-csv().from.stream(inputStream).on("record", (data, index) ->
-  if Math.random() < 0.001
-    console.log "#" + index + " " + JSON.stringify(data)
-).on("end", (count) ->
-  console.log "Number of lines: " + count
-  quit()
-).on "error", (error) ->
-  console.log error.message
-  quit()
+##################################
+# GENERIC CSV-TO-OBJECT IMPORTER #
+##################################
+importCSV = (inputFilePath, onComplete=->) ->
 
+  console.log inputFilePath
+
+  inputStream = fs.createReadStream inputFilePath
+  columns     = []
+  store       = []
+
+  csv().from.stream(inputStream).on("record", (data, index) ->
+    if index is 0
+      columns = data
+      return
+    obj = {}
+    for i in [0...columns.length]
+      obj[columns[i]] = data[i]
+    store.push obj
+
+    # random logging
+    #return if Math.random() > 0.001
+    #console.log "#" + index + " " + JSON.stringify(data)
+
+  ).on("end", (count) ->
+    console.log "Number of lines: " + count
+    console.log "columns: " + columns
+    onComplete store
+
+  ).on "error", (error) ->
+    console.log "error: " + error.message
+    
+#######################
+# IN-MEMORY DATASTORE #
+#######################
+database = {}
+
+################
+# DATASET PATH #
+################
+trainingDataset = "SingleTrainingDay_2012_11_20"
+trainingDatapath = "#{__dirname}/data/training/#{trainingDataset}/"
+
+##########################
+# SPECIFIC CSV FILE PATH #
+##########################
+
+#inputFilePath += "metar/flightstats_metarreports_combined.csv"
+filePath = "#{trainingDatapath}/otherweather/flightstats_taf.csv"
+importCSV filePath, (data) ->
+  console.log "data import terminated"
+  database.weather = data
+  console.log "database: " + pretty database.weather.sample(10)
+  quit()
 # The relevant data is divided into folders by day. For these purposes, 
 # a "day" includes all of the time from 1amPST/4amEST/9amUTC on that day
 # until the same time on the next day. So Nov. 11, 2012 is considered to

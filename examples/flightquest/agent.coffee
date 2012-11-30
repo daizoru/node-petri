@@ -70,6 +70,16 @@ module.exports = (master, source, options={}) ->
   predictedData = for flight in flights
     console.log "predicting data for flight #{flight}.."
     
+    # at this level, we are only authorized to use data/events that
+    # happenned prior to the current timestamp
+
+    # the current problem with the dataset is that some datasets
+    # don't have timestamps, but another id (eg. weather forecast id)
+    # so the importer should do the matching
+
+    # so we need to have a function to get all data matching a specific
+    # timeframe
+
     # predicted_runway_arrival_time: This is your predicted runway arrival 
     # time in minutes since midnight (time zone TBD). For example, 
     # 514.5 would correspond to 08:34:30AM
