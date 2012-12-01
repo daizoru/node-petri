@@ -36,10 +36,6 @@ module.exports = (master, source, options={}) ->
     # compute final RMSE for the given predicted flight schedule
     (0.75 * gateDeviation) + (0.25 * runwayDeviation)
 
-
-  config =
-    updateInterval: options.updateInterval ? 1000
-
   predictFlight = (flight, onComplete=->) ->
 
     compile = C
@@ -54,11 +50,15 @@ module.exports = (master, source, options={}) ->
 
       
       char buffer[1024]
-      int mode = 1 # 0 is nothing, 1 is CSV, 2 is JSON
 
       int main = ->
 
+        # TODO read this from STDIN (\n-separated) or ARGV
         char *flight = "DELTA-9196"
+
+        # TODO we need to find an algorithm which will read
+        # the dataset "on demand" and in an efficient way
+        # so we don't need to load everything in memory
         char *datasetPath = "data/training/SingleTrainingDay_2012_11_20/"
         FILE *inputFile = fopen datasetPath, 'r'
         fclose inputFile
@@ -68,36 +68,25 @@ module.exports = (master, source, options={}) ->
         int runway = 0
         int gate = 0
 
-        # CSV
-        if mode is 1
-          printf "%s,%i,%i\\n", flight, 0, 0
-
-        # JSON
-        if mode is 2
-          printf "{\\n"
-          printf "  \\\"flight\\\": \\\"%s\\\",\\n", flight
-          printf "  \\\"result\\\": 0\\n"
-          printf "}\\n"
-
+        printf "%s,%i,%i\\n", flight, 0, 0
         0
     
     console.log src
 
-    # TODO pass the flight namem as argument
-
-    run src, (err, prediction) ->
+    ###################################
+    # COMPILE AND EXECUTE THE PROGRAM #
+    ###################################
+    run src, (err, out) ->
       if err
         onComplete err, {}
-        return
-
-      [flight, runway, gate] = prediction = prediction.replace('\n','').split ','
-      #console.log "prediction: "+ pretty prediction
-      # also a JSON mod
-      #prediction = JSON.parse prediction
-      #console.log pretty prediction
-      onComplete undefined, {flight, runway, gate}
+      else
+        [flight, runway, gate] = out.replace('\n','').split ','
+        onComplete undefined, {flight, runway, gate}
     
 
+  ####################################
+  # PREDICT A LIST OF FLIGHT (ASYNC) #
+  ####################################
   predictFlights = (flights, onComplete=->) ->
     predictedData = {}
     for flight in flights
@@ -112,6 +101,9 @@ module.exports = (master, source, options={}) ->
           if Object.keys(predictedData).length is flights.length
             onComplete predictedData
      
+  #########################
+  # LOAD TRAINING DATASET #
+  #########################
   loadVerificationData = (onComplete=->) ->
     real = {}
     for flight in flights
@@ -122,19 +114,35 @@ module.exports = (master, source, options={}) ->
     onComplete real
 
 
+  #####################################
+  # RESUME AGENT'S NORMAL LIFE        #
+  # (REPRODUCTION, MUTATION, DEATH..) #
+  #####################################
+  resumeLife = (rmse) ->
+    console.log "resuming life.."
+    if P mutable 0.20
+      debug "reproducing"
+      clone 
+        src       : source
+        ratio     : 0.01
+        iterations:  2
+        onComplete: (src) ->
+          debug "sending fork event"
+          master.send fork: src
+
   ###########################
   # MAIN PROGRAM / WORKFLOW #
   ###########################
-  flights = [
-    'DELTA-9196'
-  ]
-  console.log "Step 1. Pedicting flights.."
+  flights = options.flights ? []
+  console.log "Step 1. Predicting flights.."
   predictFlights flights, (predicted) ->
     console.log "Step 2. Loading verification dataset.."
     loadVerificationData (real) ->
       console.log "Step 3. Measuring deviation.."
       rmse = evaluateResults predicted, real
       console.log "finalRMSE: #{rmse}"
+      resumeLife rmse
+
 
 
 

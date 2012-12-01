@@ -1,20 +1,9 @@
-# Models
 
- For the moment, only two models are experimented.
-
- If run together those two models will compete for ressources
- however it is also possible to run them separately.
-
-## Test Node Program
-
- The first is a pure (Node.js (JavaScript) agent. It is developed to get familiar with the dataset and test a few things.
-
-## Stand-alone C Program
+## Model
 
 ### Description
 
- The second model is like the first one, but instead of being written in JS
- it generates instead a stand-alone C program, then run it to compute the actual flight prediction.
+ The model generates instead a stand-alone C program, then run it to compute the actual flight prediction.
 
 ### Design:
 
@@ -22,5 +11,9 @@
 
  To make it predict a full dataset, one will have to run it many times eg. with a basic shell command.
 
+  Of course this means we will load the dataset everytime, but actually this is not a problem because:
+  - It will load smartly the dataset, using a search algorithm, so it will have a low memory footprint
+  - This way we will be able to simulate and evolve many agents at the same time
+  - This way it will run easily on embedded hardware
  Since the system is certainly non-stationary (ie. flights are not independent and influence each others during the day) it might be interesting - for the algorithm - to have access to the list of other flights of the day, or at least the ones previously predicted (maybe this should be in the dataset too?).
 
