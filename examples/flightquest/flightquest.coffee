@@ -6,9 +6,13 @@
 timmy            = require 'timmy'
 {System, common} = require 'substrate'
 
+# initialize the multi-models, multi-agents system
 System
 
-  bootstrap: [ require './agent' ]
+  bootstrap: [
+      require "./model1"
+      require "./model2"
+    ]
 
   workersByMachine: 1 # common.NB_CORES
   decimationTrigger: 10

@@ -85,6 +85,10 @@ importCSV filePath, (data) ->
   database.weather = data
   console.log "database: " + pretty database.weather.sample(10)
   quit()
+
+# wind reports have to be associated
+
+
 # The relevant data is divided into folders by day. For these purposes, 
 # a "day" includes all of the time from 1amPST/4amEST/9amUTC on that day
 # until the same time on the next day. So Nov. 11, 2012 is considered to
