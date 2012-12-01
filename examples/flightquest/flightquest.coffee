@@ -10,7 +10,7 @@ timmy            = require 'timmy'
 System
 
   bootstrap: [
-      require "./model1"
+      #require "./model1"
       require "./model2"
     ]
 
