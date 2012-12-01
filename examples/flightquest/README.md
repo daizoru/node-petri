@@ -5,7 +5,7 @@
  If run together those two models will compete for ressources
  however it is also possible to run them separately.
 
- ## Test Node Program
+## Test Node Program
 
  The first is a pure (Node.js (JavaScript) agent. It is developed to get familiar with the dataset and test a few things.
 
@@ -22,6 +22,5 @@
 
  To make it predict a full dataset, one will have to run it many times eg. with a basic shell command.
 
- Since the system is certainly non-stationary (ie. flights are not independent and influence each others during the day) it might be interesting to know the list of other flights of the day, or at least the ones previously predicted.
- (maybe this should be in the dataset too?)
+ Since the system is certainly non-stationary (ie. flights are not independent and influence each others during the day) it might be interesting - for the algorithm - to have access to the list of other flights of the day, or at least the ones previously predicted (maybe this should be in the dataset too?).
 
