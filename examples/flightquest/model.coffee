@@ -46,24 +46,49 @@ module.exports = (master, source, options={}) ->
 
     src = compile ->
       include 'stdio.h'
+      include 'stdlib.h'
       include 'string.h'
 
       
       char buffer[1024]
 
-      int main = ->
+      int main = (argc, argv, envp) -> 
+        int argc
+        char* $argv
+        char* $envp
 
+        int nbDatasetPaths = argc - 2
+        printf "nb files in dataset: %i\\n", nbDatasetPaths
+        # read from STDIN
+        ###
+        char* content = malloc  100 * sizeof char
+        char c
+        if content isnt NULL
+          content[0] = '\0'
+           while ((c = getchar()) isnt EOF)
+              if strlen(content) < 100
+                strcat content, c
+                content[strlen(content)-1] = '\0'
+        #free content
+        ###
+
+
+        
         # TODO read this from STDIN (\n-separated) or ARGV
-        char *flight = "DELTA-9196"
+        char* flight = argv[1]
 
         # TODO we need to find an algorithm which will read
         # the dataset "on demand" and in an efficient way
         # so we don't need to load everything in memory
-        char *datasetPath = "data/training/SingleTrainingDay_2012_11_20/"
-        FILE *inputFile = fopen datasetPath, 'r'
-        fclose inputFile
-        #fgets buffer, sizeof(buffer), inputFile
-        #char *line = strtok buffer, ','
+        int i = 2
+        while i++ < argc
+          char* datasetPath = argv[2]
+          printf " dataset -> %s\\n", datasetPath
+          #FILE *inputFile = fopen datasetPath, 'r'
+          #fgets buffer, sizeof(buffer), inputFile
+          #char *line = strtok buffer, ','
+          #fclose inputFile
+          #printf "--> %s\\n", line
 
         int runway = 0
         int gate = 0
@@ -73,13 +98,21 @@ module.exports = (master, source, options={}) ->
     
     console.log src
 
+    datasetPaths = [
+       "data/training/SingleTrainingDay_2012_11_20/otherweather/flightstats_taf.csv"
+    ]
+
+    args = [ flight ].concat datasetPaths
+    
     ###################################
     # COMPILE AND EXECUTE THE PROGRAM #
     ###################################
-    run src, (err, out) ->
+    run src, args, (err, out) ->
       if err
+        console.log "error: #{err}".red
         onComplete err, {}
       else
+        console.log "raw output: #{out}"
         [flight, runway, gate] = out.replace('\n','').split ','
         onComplete undefined, {flight, runway, gate}
     
