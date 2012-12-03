@@ -37,58 +37,55 @@ module.exports = (master, source, options={}) ->
     (0.75 * gateDeviation) + (0.25 * runwayDeviation)
 
   predictFlight = (flight, onComplete=->) ->
-
+    red = (str) -> "#{str}".red
     compile = C
       indent: "  "
-      evaluate: -> [ Math.random, Math.round ]
+      evaluate: -> [ Math.random, Math.round, red ] # todo: add .red and stuff? is it even possible?
       ignore: -> []
-      debug: no
+      debug: yes
 
     src = compile ->
       include 'stdio.h'
       include 'stdlib.h'
       include 'string.h'
 
-      
-      char buffer[1024]
-
       int main = (argc, argv, envp) -> 
-        int argc
-        char* $argv
-        char* $envp
+        # since coffeescript has no typing, we need to type the
+        # parameters manually (does it looks easy enough?)
+        int argc; char* $argv; char* $envp;
 
-        int nbDatasetPaths = argc - 2
-        printf "nb files in dataset: %i\\n", nbDatasetPaths
-        # read from STDIN
-        ###
-        char* content = malloc  100 * sizeof char
-        char c
-        if content isnt NULL
-          content[0] = '\0'
-           while ((c = getchar()) isnt EOF)
-              if strlen(content) < 100
-                strcat content, c
-                content[strlen(content)-1] = '\0'
-        #free content
-        ###
+        int nbDataFiles = argc - 2
+        printf "nb files in dataset: %i\\n", nbDataFiles
 
+        puts red "test"
 
-        
-        # TODO read this from STDIN (\n-separated) or ARGV
         char* flight = argv[1]
-
-        # TODO we need to find an algorithm which will read
-        # the dataset "on demand" and in an efficient way
-        # so we don't need to load everything in memory
-        int i = 2
-        while i++ < argc
+        int i = 1 # we skip the first line (0)
+        while ++i < argc
           char* datasetPath = argv[2]
-          printf " dataset -> %s\\n", datasetPath
-          #FILE *inputFile = fopen datasetPath, 'r'
-          #fgets buffer, sizeof(buffer), inputFile
-          #char *line = strtok buffer, ','
-          #fclose inputFile
-          #printf "--> %s\\n", line
+          printf " searching %s\\n", datasetPath
+          FILE *file = fopen datasetPath, 'r'
+          unless file
+            puts "couldn't load file"
+            continue
+
+          ##############
+          # READ LINES #
+          ##############
+          char line[2048]
+          int r = 0
+          while fgets line, sizeof(line), file
+            line[strcspn line, "\\n"] = '\\0'
+            continue if line[0] is '\\0'
+            puts line
+
+            break if r++ >= 10
+
+
+            # fgets buffer, sizeof(buffer), inputFile
+            #char *line = strtok buffer, ','
+            #fclose inputFile
+            #printf "--> %s\\n", line
 
         int runway = 0
         int gate = 0
@@ -100,6 +97,8 @@ module.exports = (master, source, options={}) ->
 
     datasetPaths = [
        "data/training/SingleTrainingDay_2012_11_20/otherweather/flightstats_taf.csv"
+       #"data/training/SingleTrainingDay_2012_11_20/otherweather/flightstats_tafforecast.csv"
+       #"data/training/SingleTrainingDay_2012_11_20/otherweather/flightstats_tafsky.csv"
     ]
 
     args = [ flight ].concat datasetPaths
@@ -113,7 +112,10 @@ module.exports = (master, source, options={}) ->
         onComplete err, {}
       else
         console.log "raw output: #{out}"
-        [flight, runway, gate] = out.replace('\n','').split ','
+        lines = out.split '\n'
+        line = lines[lines.length - 2]
+        console.log "line: #{line}"
+        [flight, runway, gate] = line.replace('\n','').split ','
         onComplete undefined, {flight, runway, gate}
     
 
