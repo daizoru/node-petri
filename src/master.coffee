@@ -99,6 +99,9 @@ class Master extends Stream
     repeat debugInterval, ->
       g = genome = database.pick()
       return unless g
+
+      # we disable the dsiplay of random samples
+      return
       log "random individual:"
       log "  hash:     : #{g.hash}"
       log "  generation: #{g.generation}"
