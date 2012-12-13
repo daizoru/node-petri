@@ -1,7 +1,7 @@
 
 module.exports = (master, source, options={}) ->
         
-  {alert, info, debug} = master.logger
+  {alert, success, failure, info, debug} = master.logger
   {repeat,wait}        = require 'ragtime'
   {mutable, clone}     = require 'evolve'
   substrate            = require 'substrate'
@@ -18,7 +18,7 @@ module.exports = (master, source, options={}) ->
       dummy = (name) ->
         name: name
         play: (game) ->
-          console.log "DUMMY PLAY"
+          alert "DUMMY PLAY"
           return 0 if game.state isnt "complete"
           game.betting[if Math.random() < 0.5 then 'raise' else 'call']
       for i in [0...max]
@@ -41,7 +41,7 @@ module.exports = (master, source, options={}) ->
       table.addObserver MachinePoker.observers.fileLogger "./test.json"
 
       table.on 'ready', ->
-        console.log 'ready'
+        success 'ready'
         table.start()
 
       table.on 'complete', (game) ->
@@ -68,11 +68,11 @@ module.exports = (master, source, options={}) ->
     play: (game) ->
       mutable = (x) -> x
       res = 0
-      console.log "BASKERVILLE PLAY"
-      console.log game.self
+      alert "BASKERVILLE PLAY"
+      debug game.self
       ourcards = game.self.cards
-      console.log "cards: #{ourcards}"
-      console.log "brain: #{game.self.brain}"
+      info "cards: #{ourcards}"
+      debug "brain: #{game.self.brain}"
       # Only play the good hands
       if game.state isnt 'complete'
         if game.state is 'pre-flop'
@@ -91,6 +91,7 @@ module.exports = (master, source, options={}) ->
       res
   
   tournament.start (game) ->
-    console.log "game terminated! checking agent's score.."
-    throw new Error "Not Implemented"
+    failure "game terminated! checking agent's score.."
+    process.exit 5
+
 

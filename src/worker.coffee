@@ -1,7 +1,12 @@
-
+# standard library
 cluster           = require 'cluster'
 {inspect}         = require 'util'
+
+# third parties libs
+colors            = require 'colors'
 deck              = require 'deck'
+
+# third parties libs (in-house!)
 {map,wait,repeat} = require 'ragtime'
 {mutable,mutate}  = require 'evolve'
 timmy             = require 'timmy'
@@ -16,8 +21,9 @@ module.exports = (options={}) ->
 
   logLevel = options.logLevel ? 0
 
-  log = (msg) -> console.log "(WORKER #{process.pid}) #{msg}"
-  log "STARTED"
+  # log = (msg) -> console.log "(WORKER #{process.pid}) #{msg}"
+  #log = (msg) -> console.log "#{msg}"
+  #console.log "Worker #{process.pid} started".yellow
   
   # send a message to the master
   send = (msg) -> process.send JSON.stringify msg
@@ -26,8 +32,10 @@ module.exports = (options={}) ->
 
     agentMeta = JSON.parse msg
     #log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta}"
-    agentName = "#{agentMeta.id}"[...3] + ".." + "#{agentMeta.id}"[-3..]
+    #agentName = "#{agentMeta.id}"[...6] + ".." + "#{agentMeta.id}"[-6..]
+    agentName = "#{agentMeta.id}"[-8..]
 
+    log = (msg) -> console.log "    Agent #{agentName}: #{msg}"
     master =
 
       # agent's event emitter
@@ -36,17 +44,18 @@ module.exports = (options={}) ->
           level = msg.log.level ? 0
           logmsg = msg.log.msg ? ''
           if logLevel <= level
-            log "(AGENT #{agentName}) #{logmsg}"
+            log "#{logmsg}"
+          # we don't actually send the log
 
         else if 'die' of msg 
-          log "DIE"
+            log "DIE".red
           # genetic death
           if agentMeta.generation >  0
             send die: "end of tree"
 
         else if 'fork' of msg
           src = msg.fork
-          log "FORK"
+          log "Forking agent..".yellow
           send 'fork':
             id: makeId()
             generation: agentMeta.generation + 1
@@ -57,20 +66,21 @@ module.exports = (options={}) ->
           send msg
 
     master.logger =
-      alert: (msg) -> master.send log: level: 0, msg: "ALERT #{msg}"
-      info : (msg) -> master.send log: level: 1, msg: "INFO #{msg}"
-      debug: (msg) -> master.send log: level: 2, msg: "DEBUG #{msg}"
+      failure: (msg) -> master.send log: level: 0, msg: "#{msg}".red
+      alert  : (msg) -> master.send log: level: 1, msg: "#{msg}".yellow
+      success: (msg) -> master.send log: level: 2, msg: "#{msg}".green
+      info   : (msg) -> master.send log: level: 2, msg: "#{msg}"
+      debug  : (msg) -> master.send log: level: 3, msg: "#{msg}".grey
     
     # create an instance of the serialized agent
     config = agentConfigurator agentMeta
     #console.log "agent config: #{inspect config, no, 20, yes}"
 
-    #console.log "evaluating agent"
-    # try
     eval "var Agent = #{agentMeta.src};"
     #console.log "created Agent: #{pretty Agent}"
+
     Agent master, agentMeta.src, config
-    # catch
+
     # we should catch exception, and report to the master
     # if the exception cannot be catch (fatal error of the V8 VM)
     # the the maximum level of error will be applied by the master

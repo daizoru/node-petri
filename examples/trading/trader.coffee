@@ -8,7 +8,7 @@ module.exports = (master, source, options={}) ->
   {mutable, clone}     = require 'evolve'
   substrate            = require 'substrate'
   {P, copy, pretty}    = substrate.common
-  {alert, info, debug} = master.logger
+  {failure, alert, success, info, debug} = master.logger
 
   pretty = (obj) -> "#{inspect obj, no, 20, yes}"
 
@@ -99,8 +99,9 @@ module.exports = (master, source, options={}) ->
       deathOdds = 1.0 unless isFinite deathOdds
       debug "decimation probability: #{deathOdds}".grey
       if P deathOdds
-        alert "decimating agent".red
-        throw new Error "agent decimated".red
+        alert "decimating agent"
+        process.exit 5
+
 
     #############################
     # TAXES AND RANDOM EXPENSES #

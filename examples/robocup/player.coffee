@@ -1,7 +1,7 @@
 
 module.exports = (master, source, options={}) ->
 
-  {alert, info, debug}  = master.logger
+  {failure, alert, success, info, debug}  = master.logger
   SimSpark             = require 'simspark'
   {repeat,wait}        = require 'ragtime'
   {mutable, clone}     = require 'evolve'
@@ -29,7 +29,7 @@ module.exports = (master, source, options={}) ->
   simspark = new SimSpark config.server.host, config.server.port
 
   simspark.on 'connect', ->
-    debug "connected! sending messages.."
+    success "connected! sending messages.."
 
     # SEND INITIALIZATION DATA TO SIMULATION
     simspark.send [
@@ -54,7 +54,7 @@ module.exports = (master, source, options={}) ->
 
   run = yes
   simspark.on 'end', -> 
-    info "disconnected from server"
+    alert "disconnected from server"
     run = no
 
   do main = ->
@@ -63,7 +63,7 @@ module.exports = (master, source, options={}) ->
     # CLEAN EXIT #
     ##############
     unless run
-      info "exiting properly"
+      alert "exiting"
       simspark.destroy()
       journal = []
       # TODO: send message to host?
@@ -76,7 +76,7 @@ module.exports = (master, source, options={}) ->
     #############
 
     if P mutable 0.20
-      debug "reproducing"
+      alert "reproducing"
       clone 
         src       : source
         ratio     : 0.01

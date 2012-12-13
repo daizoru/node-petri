@@ -31,7 +31,9 @@ class Master extends Stream
     frequency         = options.frequency         ? 1000
     databaseSize      = options.databaseSize      ? 10
     debugInterval     = options.debugInterval     ? 2.sec
+    maxGenerations    = options.maxGenerations    ? Infinity
     restart_delay     = 500.ms
+    nbGenerations = 0
 
     # init db
     database = new Database databaseSize
@@ -52,7 +54,13 @@ class Master extends Stream
     #stats = new Stats database
 
     spawn = ->
-      log "spawning worker"
+      if ++nbGenerations > maxGenerations
+        log "max generations reached, stopping system"
+        for worker in cluster.workers
+          worker.destroy()
+        process.exit 0
+
+      #log "spawning worker"
       worker = cluster.fork()
       send = (msg) -> worker.send JSON.stringify msg
 
@@ -67,8 +75,9 @@ class Master extends Stream
         if 'ready' of msg
           #console.log "worker said hello, sending genome"
           agent = database.next()
+
           if agent?
-            log "sending agent program to worker process"
+            #log "sending agent program to worker process"
             worker.agent = agent
             send agent
           else
@@ -88,7 +97,7 @@ class Master extends Stream
 
     # reload workers if necessary
     cluster.on "exit", (worker, code, signal) -> 
-      log "worker exited: #{code}"
+      #log "worker exited: #{code}"
       wait(restart_delay) -> spawn() 
 
     i = 0
