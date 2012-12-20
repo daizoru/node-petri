@@ -8,7 +8,9 @@ timmy            = require 'timmy'
 
 System
 
-  bootstrap: [ require './strain1' ]
+  bootstrap: [ 
+    require './copycat' 
+  ]
 
   workersByMachine: 1 # common.NB_CORES
   decimationTrigger: 10
