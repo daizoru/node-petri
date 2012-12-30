@@ -37,6 +37,17 @@ class module.exports
   # The decimator should take params,
   # to decimate in priority badly performing individual
 
+  # up to O(N) search if we search by source code
+  contains: (agent) =>
+    if g.id?
+      if id of @_
+        return yes
+    else
+      hash = sha1 agent
+      for k,v of @_
+        if g.hash is hash
+          return yes
+    no
   keys: => Object.keys @_
 
   randomKeys: => shuffle @keys()

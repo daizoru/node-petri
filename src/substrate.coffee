@@ -18,5 +18,11 @@ exports.common   = common
 exports.Stats    = Stats
 exports.errors   = errors
 
+
 exports.System = (options={}) ->
-  (if cluster.isMaster then Master else Worker) options
+  if cluster.isMaster 
+    Master(options) 
+  else 
+    Worker()
+
+exports.isMaster = cluster.isMaster

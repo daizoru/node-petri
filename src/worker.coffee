@@ -15,11 +15,7 @@ timmy             = require 'timmy'
 
 agent = undefined
 
-module.exports = (options={}) ->
-
-  agentConfigurator = options.config 
-
-  logLevel = options.logLevel ? 0
+module.exports = ->
 
   # log = (msg) -> console.log "(WORKER #{process.pid}) #{msg}"
   #log = (msg) -> console.log "#{msg}"
@@ -31,11 +27,15 @@ module.exports = (options={}) ->
   process.on 'message', (msg) -> 
 
     agentMeta = JSON.parse msg
-    #log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta}"
-    #agentName = "#{agentMeta.id}"[...6] + ".." + "#{agentMeta.id}"[-6..]
-    agentName = "#{agentMeta.id}"[-8..]
+
+    agentName = agentMeta.name
+    config = agentMeta.config
+
+    logLevel = config.logLevel ? 0
 
     log = (msg) -> console.log "    Agent #{agentName}: #{msg}"
+    #log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta}"
+
     master =
 
       # agent's event emitter
@@ -73,7 +73,7 @@ module.exports = (options={}) ->
       debug  : (msg) -> master.send log: level: 3, msg: "#{msg}".grey
     
     # create an instance of the serialized agent
-    config = agentConfigurator agentMeta
+
     #console.log "agent config: #{inspect config, no, 20, yes}"
 
     eval "var Agent = #{agentMeta.src};"

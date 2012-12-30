@@ -26,17 +26,23 @@ class Master extends Stream
   constructor: (options={}) ->
     #console.log "master started with options: "+pretty options
 
-    workersByMachine  = options.workersByMachine  ? NB_CORES
-    decimationTrigger = options.decimationTrigger ? 10
-    frequency         = options.frequency         ? 1000
-    databaseSize      = options.databaseSize      ? 10
-    debugInterval     = options.debugInterval     ? 2.sec
-    maxGenerations    = options.maxGenerations    ? Infinity
-    restart_delay     = 500.ms
+    workersByMachine   = @workersByMachine   = options.workersByMachine  ? NB_CORES
+    decimationTrigger  = @decimationTrigger  = options.decimationTrigger ? 10
+    frequency          = @frequency          = options.frequency         ? 1000
+    databaseSize       = @databaseSize       = options.databaseSize      ? 10
+    debugInterval      = @debugInterval      = options.debugInterval     ? 2.sec
+    maxGenerations     = @maxGenerations     = options.maxGenerations    ? Infinity
+    logLevel           = @logLevel           = options.logLevel          ? 0
+    stopIfEmpty        = @stopIfEmpty        = options.stopIfEmpty       ? yes
+
+    onData             = options.onData                                  ? ->
+    agentConfigurator  = options.config                                  ? -> {}
+
+    restart_delay      = 500.ms
     nbGenerations = 0
 
     # init db
-    database = new Database databaseSize
+    database = @database = new Database databaseSize
 
     bootstrap = options.bootstrap ? []
 
@@ -74,25 +80,43 @@ class Master extends Stream
 
         if 'ready' of msg
           #console.log "worker said hello, sending genome"
+
+          # dirty way to check if the bootstrap list changed
+          # database won't add new agent.. probably..
+
           agent = database.next()
 
           if agent?
             #log "sending agent program to worker process"
             worker.agent = agent
+            agent.name = "#{agent.id}"[-8..]
+            agent.config = agentConfigurator agent
+
+            # is logLevel is not defined in the agent config, we try to
+            # use the one from options, else 0
+            agent.config.logLevel ?= logLevel ? 0
+
             send agent
           else
-            log "no more agent to send, stopping system"
-            for worker in cluster.workers
-              worker.destroy()
-            process.exit 0
+            if stopIfEmpty
+              log "no more agent to send, stopping system"
+              for worker in cluster.workers
+                worker.destroy()
+              process.exit 0
+            else
+              log "waiting.."
 
-        else if 'fork' of msg
+        if 'fork' of msg
           log "agent want to fork"
           database.record msg.fork
 
-        else if 'die' of msg
-          log "agent want to die: #{msg.die}"
+        if 'die' of msg
+          log "agent #{agent.id} want to die: #{msg.die}"
           database.remove worker.agent
+
+        if 'data' of msg
+          log "agent #{agent.id} want to transmit a message: #{msg.data}"
+          onData agent, msg.data
 
 
     # reload workers if necessary
@@ -124,5 +148,8 @@ class Master extends Stream
       log "  db size: #{database.size()}"
       log "  counter: #{database.counter}"
       log "  oldest : #{database.oldestGeneration()}\n"
+
+  add: (agent) =>
+    @database.add agent
 
 module.exports = (args) -> new Master args
