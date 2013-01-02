@@ -4,13 +4,13 @@ path      = require "path"
 os        = require "os"
 fs        = require "fs"
 
-{isFunction, isString, makeId, sha1, shuffle, pick} = require './common'
+{isFunction, isString, makeId, sha1, shuffle, pick, pretty} = require './common'
 
 class module.exports
   constructor: (@max_size=100) ->
     @_ = {}
+
     @length = 0
-    @counter = 0
 
     @batch = []
 
@@ -26,7 +26,7 @@ class module.exports
     hash = sha1 src
     @record {id, src, hash, generation}
 
-  record  : (g)     => @_[g.id] = g ; @counter++
+  record  : (g)     => @_[g.id] = g ; @length++
   size    :         => @keys().length
   oldestGeneration: =>
     oldest = 0
@@ -54,26 +54,70 @@ class module.exports
 
   pick: => @_[pick @keys()]
 
-  decimate: =>
-    size = @size()
-    return if size < @max_size
-    to_remove = size - @max_size
-    #console.log "to remove: #{to_remove}"
+  remove: (matcher, onComplete) =>
+    work = =>
 
-    for k in @randomKeys()[0...to_remove]
-      #console.log "removing #{k}"
-      delete @_[k]
 
+      dk = undefined
+      dv = undefined
+      if matcher.id?
+        dk = matcher.id
+      else
+        if isString matcher
+          dk = matcher
+        else
+          for k,v of @_
+            if matcher k, v
+              dk = k
+              break
+      if dk?
+        dv = @_[dk]
+        delete @_[dk]
+        @length--
+
+      r = undefined
+      if dk?
+        r = {}
+        r[dk] = dv
+      if onComplete?
+        onComplete r
+      else
+        r
+    if onComplete?
+      process.nextTick work
+    else
+      work()
+
+  reduce: (reducer) => 
+    keys = @keys()
+    #console.log "keys: #{pretty keys}"
+    #([k,@_[k]] for k in keys).reduce r
+    a = 0
+    for k in keys
+      #console.log "k: #{k}"
+      item = [k,@_[k]]
+      a = reducer a, item
   # pick up next individual in a round
+
+  max: (f) =>
+    max = -Infinity
+    for k, obj of @_
+      value = f obj
+      if value > max
+        max = value
+    max
+
+  min: (f) =>
+    min = Infinity
+    for k, obj of @_
+      value = f obj
+      if value < min
+        min = value
+    min
+
   next: =>
-    #console.log "batch: #{@batch}"
-    k = @batch.pop()
-    #console.log "next: #{k}"
-    if !k? and @size() > 0
-      #console.log "end of cycle. size: #{@size()}"
-      @decimate()
-      k = @randomKeys().pop()
+    if @batch.length is 0
+      @batch = Object.keys @_
+    @_[@batch.shift()]
 
-
-    @_[k]
 

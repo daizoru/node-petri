@@ -35,7 +35,6 @@ class Master extends Stream
     logLevel           = @logLevel           = options.logLevel          ? 0
     stopIfEmpty        = @stopIfEmpty        = options.stopIfEmpty       ? yes
 
-    onData             = options.onData                                  ? ->
     agentConfigurator  = options.config                                  ? -> {}
 
     restart_delay      = 500.ms
@@ -49,6 +48,8 @@ class Master extends Stream
     emit = (key,msg) =>
       @emit key, msg
 
+
+
     log = (msg) ->
       console.log "MASTER: #{msg}"
     # load agents
@@ -59,7 +60,7 @@ class Master extends Stream
     # bind stats to database
     #stats = new Stats database
 
-    spawn = ->
+    spawn = =>
       if ++nbGenerations > maxGenerations
         log "max generations reached, stopping system"
         for worker in cluster.workers
@@ -70,7 +71,7 @@ class Master extends Stream
       worker = cluster.fork()
       send = (msg) -> worker.send JSON.stringify msg
 
-      worker.on 'message', (msg) ->
+      worker.on 'message', (msg) =>
 
         #console.log "worker replied: #{msg}"
         msg = JSON.parse msg
@@ -107,16 +108,26 @@ class Master extends Stream
               log "waiting.."
 
         if 'fork' of msg
-          log "agent want to fork"
-          database.record msg.fork
+          #log "agent want to fork"
+
+          if @onFork agent
+            log "fork authorized"
+            database.record msg.fork
+          else
+            #log "fork denied"
 
         if 'die' of msg
-          log "agent #{agent.id} want to die: #{msg.die}"
-          database.remove worker.agent
+          #log "agent #{agent.id} want to die: #{msg.die}"
+          if @onDie agent
+            log "death granted"
+            database.remove worker.agent
+          else
+            #log "death denied"
 
-        if 'data' of msg
-          log "agent #{agent.id} want to transmit a message: #{msg.data}"
-          onData agent, msg.data
+        if 'msg' of msg
+          #log "agent #{agent.id} want to transmit a message: #{msg.msg}"
+          # legacy event message system
+          @onMsg agent, msg.msg
 
 
     # reload workers if necessary
@@ -149,7 +160,27 @@ class Master extends Stream
       log "  counter: #{database.counter}"
       log "  oldest : #{database.oldestGeneration()}\n"
 
+  onMsg: (agent, msg) => 
+    console.log "agent #{agent.id} want to transmit a message: #{msg.msg}"
+  onFork: (agent) => 
+    console.log "agent want to fork"
+    yes
+  onDie: (agent) => 
+    console.log "agent #{agent.id} want to die: #{msg.die}"
+    yes
+
+  size: => @database.length
+
   add: (agent) =>
     @database.add agent
+
+  remove: (agent) =>
+    @database.remove agent
+
+
+  reduce: (f) => @database.reduce f
+  max: (f) => @database.max f
+  min: (f) => @database.min f
+
 
 module.exports = (args) -> new Master args

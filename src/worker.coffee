@@ -51,7 +51,7 @@ module.exports = ->
             log "DIE".red
           # genetic death
           if agentMeta.generation >  0
-            send die: "end of tree"
+            send die: "die"
 
         else if 'fork' of msg
           src = msg.fork

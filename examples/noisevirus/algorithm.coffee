@@ -23,8 +23,8 @@ module.exports = (master, source, options={}) ->
   dataset = options.dataset
   shared = options.shared
 
-  console.log "dataset: " + pretty dataset
-  console.log "shared: " + pretty shared
+  #console.log "dataset: " + pretty dataset
+  #console.log "shared: " + pretty shared
 
   n = 0
   m = 0
@@ -43,6 +43,8 @@ module.exports = (master, source, options={}) ->
     #q = mutable if q < 0.01 then 1 * Math.random() else q
 
     m = mutable m + Math.sin(2 * t)
+    #x = 0.0 if x < 0.0
+    #x = 1.0 if x > 1.0
     x
   #console.log "waveform: #{wave}"
 
@@ -63,6 +65,7 @@ module.exports = (master, source, options={}) ->
     # more distance == more penalty == less reproduction probability
     generated = wave[length++]
     delta = Math.abs generated - sample
+
     #console.log "chan: #{channel}, sample: #{sample}, generated: #{generated}, delta: #{delta}"
     deltas += delta
     #length++
@@ -71,26 +74,14 @@ module.exports = (master, source, options={}) ->
     if err
       failure "error: #{err}"
       throw new Error err
-    debug "sample loaded (length: #{length})"
+    #debug "sample loaded (length: #{length})"
 
     # between 0 and about 1
-    e = deltas / length
-    if !isFinite(e)
-      failure "failure, bad function"
-      process.exit 3
-
-    min = Math.min shared.errorRate.min, e
-    max = Math.max shared.errorRate.max, e
-
-    adjusted = min + (e / (max - min))
-
-    debug "#{adjusted} = #{min} + (#{e} / (#{max} - #{min}))"
-
-    if P adjusted * 0.1
-      failure "bad score and bad luck (error: #{adjusted})"
-      process.exit 2
-    else
-      success "lucky enough to reproduce (error: #{adjusted})"
+    errorDelta = deltas / length
+    unless isFinite errorDelta
+      failure "error too important"
+      errorDelta = Infinity
+      #process.exit 3
 
     # output the music, not for debug but for fun
    
@@ -100,26 +91,26 @@ module.exports = (master, source, options={}) ->
       x = wave[i++]
       out = x * global.gain
       if i >= wave.length
-        alert "mutating.."
+        #alert "mutating.."
         clone 
           src       : source
           ratio     : mutable 0.80
           iterations:  3
           onComplete: (src) ->
             success "mutated"
-            master.send data: errorRate: adjusted
+            master.send msg: errorDelta: errorDelta
             master.send fork: src
             process.exit 0
 
       else
         # KILL INDIVIDUALS, NOT EARS
         if !isFinite(out) or Math.abs out > 0.1
-          failure "failure, bad playback"
+          failure "corrupted output"
           process.exit 1
       out
     b.play()
   
-  debug "loading sample.."
+  #debug "loading sample.."
   pcm.getPcmData referenceFile, pcmConfig, onData, onError
 
   {}
