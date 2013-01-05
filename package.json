@@ -30,7 +30,8 @@
   "dependencies" : {
      "evolve"         : "*",
      "ragtime"        : "0.0.7",
-     "deck"           : "0.0.4"
+     "deck"           : "0.0.4",
+     "node-v8-clone"  : "0.4.2"
    },
    "devDependencies" : {
      "coffee-script"  : "1.4.0",

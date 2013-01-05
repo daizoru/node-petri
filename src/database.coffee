@@ -54,31 +54,44 @@ class module.exports
 
   pick: => @_[pick @keys()]
 
-  remove: (matcher, onComplete) =>
+  remove: (item, onComplete) =>
     work = =>
 
 
-      dk = undefined
+      id = undefined
       dv = undefined
-      if matcher.id?
-        dk = matcher.id
-      else
-        if isString matcher
-          dk = matcher
-        else
-          for k,v of @_
-            if matcher k, v
-              dk = k
-              break
-      if dk?
-        dv = @_[dk]
-        delete @_[dk]
+
+      # are we doing a trivial search?
+      if item.id?
+        id = item.id
+      else if isString item
+        id = item
+      else if isFinite item
+        id = item.toString()
+      #console.log "remove: #{item}  id: #{id} from #{pretty Object.keys @_}"
+      # we passed a matching function
+      unless id?
+        for k,v of @_
+          if item k, v
+            id = k
+            break
+
+      if id?
+        dv = @_[id]
+        delete @_[id]
+        idx = @batch.indexOf id
+
+        # also try to remove it from the batch
+        if idx > -1
+          @batch.splice idx, 1
+
         @length--
 
+      #console.log "deleted: #{pretty Object.keys @_}"
       r = undefined
-      if dk?
+      if id?
         r = {}
-        r[dk] = dv
+        r[id] = dv
       if onComplete?
         onComplete r
       else
@@ -103,6 +116,8 @@ class module.exports
     max = -Infinity
     for k, obj of @_
       value = f obj
+      unless value?
+        continue
       if value > max
         max = value
     max
@@ -111,13 +126,24 @@ class module.exports
     min = Infinity
     for k, obj of @_
       value = f obj
+      unless value?
+        continue
       if value < min
         min = value
     min
 
+  each: (f) =>
+    for k, v of @_
+      f v
+    @
+
   next: =>
     if @batch.length is 0
       @batch = Object.keys @_
-    @_[@batch.shift()]
+    next = @batch.shift()
+    unless @_[next]?
+      console.log "batch: #{@batch} next: #{next}"
+      console.log pretty @_
+    @_[next]
 
 

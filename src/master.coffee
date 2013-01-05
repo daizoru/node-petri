@@ -109,25 +109,34 @@ class Master extends Stream
 
         if 'fork' of msg
           #log "agent want to fork"
-
-          if @onFork agent
-            log "fork authorized"
-            database.record msg.fork
-          else
-            #log "fork denied"
+          # TODO create a temporary agent!
+          process.nextTick =>
+            @onFork msg.fork, (ok) ->
+              if ok?
+                log "fork authorized"
+                database.record ok
+              else
+                #log "fork denied"
+                return
+              return
 
         if 'die' of msg
-          #log "agent #{agent.id} want to die: #{msg.die}"
-          if @onDie agent
-            log "death granted"
-            database.remove worker.agent
-          else
-            #log "death denied"
+          process.nextTick =>
+            #log "agent #{agent.id} want to die: #{msg.die}"
+            @onDie agent, (granted) ->
+              if granted
+                log "death granted"
+                database.remove worker.agent.id
+              else
+                #log "death denied"
+                return
+              return
 
         if 'msg' of msg
-          #log "agent #{agent.id} want to transmit a message: #{msg.msg}"
-          # legacy event message system
-          @onMsg agent, msg.msg
+          process.nextTick =>
+            #log "agent #{agent.id} want to transmit a message: #{msg.msg}"
+            # legacy event message system
+            @onMsg agent, msg.msg
 
 
     # reload workers if necessary
@@ -162,12 +171,13 @@ class Master extends Stream
 
   onMsg: (agent, msg) => 
     console.log "agent #{agent.id} want to transmit a message: #{msg.msg}"
-  onFork: (agent) => 
+  onFork: (agent, onComplete) => 
     console.log "agent want to fork"
+    onComplete yes
     yes
-  onDie: (agent) => 
+  onDie: (agent, onComplete) => 
     console.log "agent #{agent.id} want to die: #{msg.die}"
-    yes
+    onComplete yes
 
   size: => @database.length
 
@@ -181,6 +191,7 @@ class Master extends Stream
   reduce: (f) => @database.reduce f
   max: (f) => @database.max f
   min: (f) => @database.min f
+  each: (f) => @database.each f
 
 
 module.exports = (args) -> new Master args

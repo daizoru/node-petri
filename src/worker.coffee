@@ -32,6 +32,7 @@ module.exports = ->
     config = agentMeta.config
 
     logLevel = config.logLevel ? 0
+    preserveGeneration = config.preserveGeneration ? 0
 
     log = (msg) -> console.log "    Agent #{agentName}: #{msg}"
     #log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta}"
@@ -48,19 +49,26 @@ module.exports = ->
           # we don't actually send the log
 
         else if 'die' of msg 
-            log "DIE".red
-          # genetic death
-          if agentMeta.generation >  0
+            log "sending die".red
+          # by default, we don't kill the N first generations
+          if agentMeta.generation >  preserveGeneration
             send die: "die"
 
         else if 'fork' of msg
-          src = msg.fork
-          log "Forking agent..".yellow
-          send 'fork':
+          #log "sending fork".yellow
+          packet =
             id: makeId()
             generation: agentMeta.generation + 1
-            hash: sha1 src
-            src: src
+            hash: sha1 msg.fork.src
+            src: msg.fork.src
+
+          # copy user-defined attributes
+          for k, v of msg.fork
+            continue if k is 'src'
+            packet[k] = v
+
+          send fork: packet
+
         else
           #log "forwarding unknow message to master: #{pretty msg}"
           send msg

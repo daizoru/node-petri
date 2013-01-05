@@ -1,12 +1,5 @@
-# a strain which try to copy another sample
-# todo: we need to compare the performance of one individual compared to all others
-# so that particularly good performing ones have much more chance to reproduce
-# than average (this should give results similar to "tournaments" of others GAs)
+
 module.exports = (master, source, options={}) ->
-
-  #redis = require 'redis'
-  #client = redis.createClient()
-
 
   baudio               = require 'baudio'
   colors               = require 'colors'
@@ -14,24 +7,11 @@ module.exports = (master, source, options={}) ->
   {wait,repeat}        = require 'ragtime'
   {mutable, clone}     = require 'evolve'
   substrate            = require 'substrate'
-  {P, copy, pretty}    = substrate.common
+  {P, copy, pretty, round}    = substrate.common
   {failure, alert, success, info, debug} = master.logger
 
-  pretty = (obj) -> "#{inspect obj, no, 20, yes}"
-
-  global = options.global
-  dataset = options.dataset
-  shared = options.shared
-
-  #console.log "dataset: " + pretty dataset
-  #console.log "shared: " + pretty shared
-
-  n = 0
-  m = 0
-  z = 0
-  q = 1
-  t = 0
-  wave = for i in [0..dataset.length]
+  n = 0; m = 0; z = 0; q = 1; t = 0
+  wave = for i in [0..options.dataset.length]
     t = mutable t + 0.00001 + 0.00002 + 0.00002
     x = mutable Math.sin t * ( 26 * 100.0) + Math.sin(n) +  Math.sin(2 * t)   * (q -=  0.01)
     n = mutable n + Math.sin(t * 3 * Math.random() * 0.01 * Math.PI) + 0.002 
@@ -43,74 +23,53 @@ module.exports = (master, source, options={}) ->
     #q = mutable if q < 0.01 then 1 * Math.random() else q
 
     m = mutable m + Math.sin(2 * t)
-    #x = 0.0 if x < 0.0
-    #x = 1.0 if x > 1.0
+
+    # LIMITER
+    x = -1.0 if x < -1.0
+    x = +1.0 if x > 1.0
+
+    # CORRUPTED SIGNAL PROTECTION
+    process.exit 2 unless -1.0 < x < 1.0
+
     x
   #console.log "waveform: #{wave}"
 
-
-  deltas = 0
+  sumOfDeltas = 0
   length = 0
-  pcmConfig = 
-    stereo: no
-    sampleRate: dataset.sampleRate
-  referenceFile = dataset.file
   onData = (sample, channel) ->
-    return unless channel is dataset.channel
-    # Sample is from [-1.0...1.0], channel is 0 for left and 1 for right
-    #min = Math.min min, sample
-    #max = Math.max max, sample
+    if channel is options.dataset.channel
+      sumOfDeltas += Math.abs wave[length++] - sample
 
-    # TODO compare how far we are from reference model
-    # more distance == more penalty == less reproduction probability
-    generated = wave[length++]
-    delta = Math.abs generated - sample
-
-    #console.log "chan: #{channel}, sample: #{sample}, generated: #{generated}, delta: #{delta}"
-    deltas += delta
-    #length++
-
-  onError = (err, output) ->
+  onEnd = (err, output) ->
     if err
       failure "error: #{err}"
-      throw new Error err
+      process.exit 1
     #debug "sample loaded (length: #{length})"
 
-    # between 0 and about 1
-    errorDelta = deltas / length
-    unless isFinite errorDelta
-      failure "error too important"
-      errorDelta = Infinity
-      #process.exit 3
+    errorDelta = sumOfDeltas / length # errorDelta will be [0.0, 1.0]
+    process.exit 3 unless 0.0 < errorDelta < 0.99
 
-    # output the music, not for debug but for fun
-   
-    b = baudio()
-    i = 0
-    b.push (t) ->
-      x = wave[i++]
-      out = x * global.gain
-      if i >= wave.length
-        #alert "mutating.."
-        clone 
-          src       : source
-          ratio     : mutable 0.80
-          iterations:  3
-          onComplete: (src) ->
-            success "mutated"
-            master.send msg: errorDelta: errorDelta
-            master.send fork: src
-            process.exit 0
+    #alert "mutating.."
+    clone 
+      src       : source
+      ratio     : mutable 0.90
+      iterations:  3
+      onComplete: (src) ->
+        #success "mutated!"
+        #debug "#{round errorDelta, 4}"
+        child = 
+          src: src
+          errorDelta: errorDelta
 
-      else
-        # KILL INDIVIDUALS, NOT EARS
-        if !isFinite(out) or Math.abs out > 0.1
-          failure "corrupted output"
-          process.exit 1
-      out
-    b.play()
+        # should we send a waveform?
+        if options.playback
+          child.wave = wave
+
+        master.send fork: child
+        process.exit 0
   
   #debug "loading sample.."
-  pcm.getPcmData referenceFile, pcmConfig, onData, onError
+  conf = stereo: options.dataset.stereo, sampleRate: options.dataset.sampleRate
+  pcm.getPcmData options.dataset.file, conf, onData, onEnd
 
   {}

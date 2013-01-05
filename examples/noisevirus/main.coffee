@@ -3,14 +3,21 @@
 {inspect}        = require 'util'
 
 # THIRD PARTIES
+baudio           = require 'baudio'
 timmy            = require 'timmy'
 {System, common} = require 'substrate'
-{P, copy, pretty} = common
 
-shared =
-  foo: 0
+{P, copy, pretty, round} = common
 
-POOL_SIZE = 3
+
+# STATIC PARAMETERS
+monitor =
+  gain: 0.05 # the "volume"
+
+# play back a soundwave, using a gain (for volume)
+# when finished, onComplete is called
+
+POOL_SIZE = 4
 
 system = System
 
@@ -18,51 +25,70 @@ system = System
     require './algorithm' 
   ]
 
-  workersByMachine: 1 # common.NB_CORES
+  workersByMachine: 8 # common.NB_CORES
   
   config: (agent) ->
 
-    global:
-      gain: 0.05 # the "volume"
+    # DYNAMIC PROPERTIES
+    agent.errorDelta ?= 1.0 # default error delta is 1.0
+ 
+    playback: no
 
     dataset:
       file: 'training/sorrydave.mp3'
       length: 85002
       channel: 0
+      stereo: no
       sampleRate: 44100
 
-    shared: shared
+    preserveGeneration: 0 # initial "eve" generation cannot die
 
-# called whenever an individual want to send a global message
-system.onMsg = (agent, msg) -> 
-  agent.errorDelta = msg.errorDelta
+playing = no
+best = undefined
 
-  # a global function, which compute the best score
-  # as a reference, for others to compare to it
-system.onFork = (agent) ->
-  console.log "system size: #{system.size()}"
-  bestOpponent = if system.size() > 1
-    system.min (opponent) -> 
-      console.log "agent.id: #{agent.id} opponent.id: #{opponent.id} opponent.errorDelta: #{opponent.errorDelta}"
-      if opponent.id isnt agent.id # doesn't count ourselve!
-        opponent.errorDelta
-      else
-        1.0
-  else
-    1.0
-  console.log "errorRate => agent: #{agent.errorDelta}   bestOpponent: #{bestOpponent}"
-  isBetter = agent.errorDelta < bestOpponent
+playBack = (wave, gain, onComplete, startAt = 0) ->
+  f = (t) ->
+    if wave.length is (startAt + 1)
+      onComplete()
+      return
+    wave[startAt++] * gain
+  b = baudio()
+  b.push(f)
+  b.play()
+
+system.onFork = (agent, onComplete) ->
+  size = system.size()
+
+  system.each (candidate) -> 
+    if candidate.id isnt agent.id
+      if !best? or candidate.errorDelta < best.errorDelta
+        best = candidate
+
+  unless best?
+    console.log "agent is alone.."
+    return onComplete agent
+
+  #console.log "agent: #{round agent.errorDelta}, pool: #{size}"
+
+  isBetter = agent.errorDelta < best.errorDelta
   if isBetter
-    console.log "our agent is better than the best!"
-  else
-    console.log "agent is not better than the others.."
+    console.log "better (#{round agent.errorDelta, 6} < #{round best.errorDelta})".green
+  else 
+    console.log "searching (#{round agent.errorDelta, 6} > #{round best.errorDelta}) (pool: #{system.size()})".grey
 
-  # reproduce if we have no competition
-  # if there is competition (system.size > 10) we have to beat
-  # at least one individual in the pool
-  isBetter or system.size() < POOL_SIZE
+  if isBetter or system.size() < POOL_SIZE
+    if agent.wave? and !playing
+      playing = yes
+      playBack agent.wave, monitor.gain, -> 
+        playing = no
+        onComplete agent
+    else
+      onComplete agent
+  else
+    onComplete()
 
 # revive agents (stop genetic suicide) if we have less than 10 agents
-system.onDie = (agent) ->
-  system.size() > POOL_SIZE
+system.onDie = (agent, onComplete) -> 
+  onComplete system.size() > POOL_SIZE
+
 

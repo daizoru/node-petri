@@ -18,6 +18,10 @@ isBoolean   = exports.isBoolean   = (obj) -> obj is true or obj is false
 isString    = exports.isString    = (obj) -> !!(obj is '' or (obj and obj.charCodeAt and obj.substr))
 toStr       = exports.toStr       = (func) -> func.toString()
 
+round = exports.round = (value, d = 4) ->
+  x = Math.pow 10, d
+  Math.round(value * x) / x
+  
 randInt = exports.randInt = (min, max) -> 
   if isUndefined max
     Math.round Math.random() * min
