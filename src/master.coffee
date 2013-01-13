@@ -12,14 +12,11 @@ timmy           = require 'timmy'
 Database      = require './database'
 Stats         = require './stats'
 
-{P,isFunction,makeId, NB_CORES} = require './common'
+{P,isFunction,makeId, NB_CORES, pretty} = require './common'
 
 debug = (msg) -> 
   if yes
     console.log "#{msg}"
-
-pretty = (obj) -> "#{inspect obj, no, 20, yes}"
-
 
 class Master extends Stream
 
@@ -27,8 +24,6 @@ class Master extends Stream
     #console.log "master started with options: "+pretty options
 
     workersByMachine   = @workersByMachine   = options.workersByMachine  ? NB_CORES
-    decimationTrigger  = @decimationTrigger  = options.decimationTrigger ? 10
-    frequency          = @frequency          = options.frequency         ? 1000
     databaseSize       = @databaseSize       = options.databaseSize      ? 10
     debugInterval      = @debugInterval      = options.debugInterval     ? 2.sec
     maxGenerations     = @maxGenerations     = options.maxGenerations    ? Infinity
@@ -40,6 +35,8 @@ class Master extends Stream
     restart_delay      = 500.ms
     nbGenerations = 0
 
+    @isMaster = yes
+    
     # init db
     database = @database = new Database databaseSize
 
@@ -88,7 +85,7 @@ class Master extends Stream
           agent = database.next()
 
           if agent?
-            #log "sending agent program to worker process"
+            #log "spawning agent #{agent.id} to ##{worker.id}"
             worker.agent = agent
             agent.name = "#{agent.id}"[-8..]
             agent.config = agentConfigurator agent
@@ -113,7 +110,7 @@ class Master extends Stream
           process.nextTick =>
             @onFork msg.fork, (ok) ->
               if ok?
-                log "fork authorized"
+                #log "fork #{msg.fork.id} by agent #{worker.agent.id} is authorized"
                 database.record ok
               else
                 #log "fork denied"
@@ -125,8 +122,9 @@ class Master extends Stream
             #log "agent #{agent.id} want to die: #{msg.die}"
             @onDie agent, (granted) ->
               if granted
-                log "death granted"
-                database.remove worker.agent.id
+                #log "death granted for #{agent.id}"
+                database.remove agent.id
+                #log "database.removed #{agent.id}"
               else
                 #log "death denied"
                 return
@@ -141,7 +139,7 @@ class Master extends Stream
 
     # reload workers if necessary
     cluster.on "exit", (worker, code, signal) -> 
-      #log "worker exited: #{code}"
+      log "worker #{worker.id} exited: " + if code > 0 then "#{code}".red else "#{code}".green
       wait(restart_delay) -> spawn() 
 
     i = 0
@@ -149,34 +147,14 @@ class Master extends Stream
       spawn()
     @emit 'ready'
 
-    repeat debugInterval, ->
-      g = genome = database.pick()
-      return unless g
-
-      # we disable the dsiplay of random samples
-      return
-      log "random individual:"
-      log "  hash:     : #{g.hash}"
-      log "  generation: #{g.generation}"
-      ###
-      console.log "   parent stats:"
-      console.log "    forking   : #{g.stats.forking_rate}"
-      console.log "    mutation  : #{g.stats.mutation_rate}"
-      console.log "    lifespan  : #{g.stats.lifespan_rate}\n"
-      ###
-      log " general stats:"
-      log "  db size: #{database.size()}"
-      log "  counter: #{database.counter}"
-      log "  oldest : #{database.oldestGeneration()}\n"
-
   onMsg: (agent, msg) => 
-    console.log "agent #{agent.id} want to transmit a message: #{msg.msg}"
+    #console.log "agent #{agent.id} want to transmit a message: #{msg.msg}"
   onFork: (agent, onComplete) => 
-    console.log "agent want to fork"
+    #console.log "agent want to fork"
     onComplete yes
     yes
   onDie: (agent, onComplete) => 
-    console.log "agent #{agent.id} want to die: #{msg.die}"
+    #console.log "agent #{agent.id} want to die: #{msg.die}"
     onComplete yes
 
   size: => @database.length
@@ -187,11 +165,12 @@ class Master extends Stream
   remove: (agent) =>
     @database.remove agent
 
-
+  agents: (property) => @database.agents property
   reduce: (f) => @database.reduce f
   max: (f) => @database.max f
   min: (f) => @database.min f
   each: (f) => @database.each f
+
 
 
 module.exports = (args) -> new Master args

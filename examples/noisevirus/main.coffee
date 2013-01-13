@@ -6,18 +6,13 @@
 baudio           = require 'baudio'
 timmy            = require 'timmy'
 {System, common} = require 'substrate'
-
+{wait}           = require 'ragtime'
 {P, copy, pretty, round} = common
-
-
-# STATIC PARAMETERS
-monitor =
-  gain: 0.05 # the "volume"
 
 # play back a soundwave, using a gain (for volume)
 # when finished, onComplete is called
 
-POOL_SIZE = 4
+POOL_SIZE = 6
 
 system = System
 
@@ -25,7 +20,7 @@ system = System
     require './algorithm' 
   ]
 
-  workersByMachine: 8 # common.NB_CORES
+  workersByMachine: 5 # common.NB_CORES
   
   config: (agent) ->
 
@@ -43,52 +38,61 @@ system = System
 
     preserveGeneration: 0 # initial "eve" generation cannot die
 
-playing = no
-best = undefined
+if system.isMaster
 
-playBack = (wave, gain, onComplete, startAt = 0) ->
-  f = (t) ->
-    if wave.length is (startAt + 1)
-      onComplete()
-      return
-    wave[startAt++] * gain
-  b = baudio()
-  b.push(f)
-  b.play()
+  console.log "IS MASTER"
 
-system.onFork = (agent, onComplete) ->
-  size = system.size()
+  # STATIC PARAMETERS
+  monitor = gain: 0.05 # the "volume"
+  sample = undefined
 
-  system.each (candidate) -> 
-    if candidate.id isnt agent.id
-      if !best? or candidate.errorDelta < best.errorDelta
-        best = candidate
+  playBack = (wave, gain, onComplete, startAt = 0) ->
+    cb = no
+    f = (t) ->
+      if !cb and wave.length is (startAt + 1)
+        cb = yes
+        onComplete()
+        return
+      wave[startAt++] * gain
+    b = baudio()
+    b.push(f)
+    b.play()
 
-  unless best?
-    console.log "agent is alone.."
-    return onComplete agent
-
-  #console.log "agent: #{round agent.errorDelta}, pool: #{size}"
-
-  isBetter = agent.errorDelta < best.errorDelta
-  if isBetter
-    console.log "better (#{round agent.errorDelta, 6} < #{round best.errorDelta})".green
-  else 
-    console.log "searching (#{round agent.errorDelta, 6} > #{round best.errorDelta}) (pool: #{system.size()})".grey
-
-  if isBetter or system.size() < POOL_SIZE
-    if agent.wave? and !playing
-      playing = yes
-      playBack agent.wave, monitor.gain, -> 
-        playing = no
-        onComplete agent
+  do listen = ->
+    if sample?
+      console.log "trying to playback!"
+      playBack sample, monitor.gain, ->
+        wait(2000) listen
     else
-      onComplete agent
-  else
-    onComplete()
+      wait(100) listen
 
-# revive agents (stop genetic suicide) if we have less than 10 agents
-system.onDie = (agent, onComplete) -> 
-  onComplete system.size() > POOL_SIZE
+  system.onFork = (agent, onComplete) ->
+
+    # the pool is full: we start the game of throne
+    canBeForked = no
+    sorted = system.agents (a, b) -> a.errorDelta - b.errorDelta
+    if sorted[0]?.wave?
+      sample = sorted[0].wave
+
+    console.log "#{agent.id}: #{agent.errorDelta}"
+    for opponent in sorted
+      console.log "  - #{opponent.id}: #{opponent.errorDelta}"
+      if agent.errorDelta < opponent.errorDelta
+        console.log "agent #{agent.id} better than #{opponent.id} (#{agent.errorDelta} <= #{opponent.errorDelta}) (pool: #{system.size()})".green
+        canBeForked = yes
+        system.remove opponent
+        break
+
+    if canBeForked or system.size() <= POOL_SIZE
+      onComplete agent
+    else
+      onComplete()
+
+  # revive agents (stop genetic suicide) if we have less than 10 agents
+  system.onDie = (agent, onComplete) -> 
+    authorize = system.size() > POOL_SIZE
+    #unless authorize
+    #  console.log "refusing death (size: #{system.size()} > POOL_SIZE: #{POOL_SIZE})"
+    onComplete authorize
 
 

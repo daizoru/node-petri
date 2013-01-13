@@ -24,6 +24,7 @@ module.exports = (master, source, options={}) ->
 
     m = mutable m + Math.sin(2 * t)
 
+    #x = 0 unless isFinite x
     # LIMITER
     x = -1.0 if x < -1.0
     x = +1.0 if x > 1.0
@@ -46,13 +47,13 @@ module.exports = (master, source, options={}) ->
       process.exit 1
     #debug "sample loaded (length: #{length})"
 
-    errorDelta = sumOfDeltas / length # errorDelta will be [0.0, 1.0]
+    errorDelta = round sumOfDeltas / length, 7 # errorDelta will be [0.0, 1.0]
     process.exit 3 unless 0.0 < errorDelta < 0.99
 
     #alert "mutating.."
     clone 
       src       : source
-      ratio     : mutable 0.90
+      ratio     : mutable 0.20
       iterations:  3
       onComplete: (src) ->
         #success "mutated!"
@@ -64,9 +65,9 @@ module.exports = (master, source, options={}) ->
         # should we send a waveform?
         if options.playback
           child.wave = wave
-
+        #success "waveform looks ok, forking.."
         master.send fork: child
-        process.exit 0
+        wait(2000) -> process.exit 0
   
   #debug "loading sample.."
   conf = stereo: options.dataset.stereo, sampleRate: options.dataset.sampleRate

@@ -1,5 +1,5 @@
 
-module.exports = (master, source, options={}) ->
+module.exports = (options={}) ->
 
   path                 = require 'path'
   colors               = require 'colors'
@@ -8,9 +8,8 @@ module.exports = (master, source, options={}) ->
   {mutable, clone}     = require 'evolve'
   substrate            = require 'substrate'
   {P, copy, pretty}    = substrate.common
-  {failure, alert, success, info, debug} = master.logger
-
-  pretty = (obj) -> "#{inspect obj, no, 20, yes}"
+  byluck = P
+  {failure, alert, success, info, debug} = @logger
 
   #demoDir = path.normalize "#{__dirname}/../examples/trading/"
   #console.log "modules: #{demoDir}"
@@ -21,11 +20,12 @@ module.exports = (master, source, options={}) ->
   #######################################################
   # TODO this should follow the twitter's search syntax #
   #######################################################
-  keywords = ['symbol']
+  keywords = ['fruits']
   news =
     latest: ->
       for i in [1..5]
         "pear #{if P 0.5 then 'is hipe' else 'sucks'}"
+
 
   #################
   # ROBOT ACCOUNT #
@@ -61,15 +61,25 @@ module.exports = (master, source, options={}) ->
   # The agent will have to pay for its bugs - this way it should     #
   # converge to more efficient solutions, evolving to have less bugs #
   ####################################################################
-  penalties =
+  energyModel =
+    # PENALTIES
     NOT_ENOUGH_MONEY: -5
     NOT_IN_PORTFOLIO: -10
     NOT_ENOUGH_SHARES: -20
 
+
+    # COSTS
+    FORKING: -10
+    BID: -10
+
+    # REWARDS
+    BENEFIT: +10
+
   # LISTEN TO ERRORS, APPLY PENALTY FOR CRITICAL ERRORS
-  # BY REMOVING MONEY FROM THE AGENT'S BALANCE
-  market.on 'error', (code, msg) ->
-    market.transfert account.username, penalties[code]
+  # BY REMOVING ##MO#N#E#Y## ENERGY FROM THE AGENT'S BALANCE
+  market.on 'error', (code, msg) =>
+    @transfert energyModel[code]
+    #market.transfert account.username, energyModel[code]
     alert msg.red
 
   # start the update loop (generate the timeserie)
@@ -83,24 +93,18 @@ module.exports = (master, source, options={}) ->
   iterations = 0
 
   # an iteration 
-  do main = ->
+  do main = =>
 
-    ##############
-    # DECIMATION #
-    ############################################################################
-    # By simulating a decimation process, we force agents to continously       #
-    # seek money in order to survive. Agents are not equals facing decimation: #
-    # the wealthiest have a lower decimation probability, however since they   #
-    # are more exposed to it, they will eventually get decimated               #
-    ############################################################################
-    if iterations++ > 0
-      debug "agent has #{account.balance} and: ".grey + pretty account.portfolio
-      deathOdds =  1.0 - (account.balance / BEST_BALANCE) 
-      deathOdds = 1.0 unless isFinite deathOdds
-      debug "decimation probability: #{deathOdds}".grey
-      if P deathOdds
-        alert "decimating agent"
-        process.exit 5
+    ##########
+    # ENERGY #
+    ##########
+    # Comptue how much energy should be put in the agent
+
+
+
+    # SHARING #
+    # energy can be shared among individuals
+
 
 
     #############################
@@ -110,6 +114,10 @@ module.exports = (master, source, options={}) ->
     # to the agents, so they will always have to seek new money    #
     # without limit (wealthy agents will have more taxes/expenses) #
     ################################################################
+    
+    ###################
+    # WORLD WIDE NEWS #
+    ###################
     latestNews = news.latest()
 
     ################
@@ -119,15 +127,21 @@ module.exports = (master, source, options={}) ->
     # the environment and the algorithm in the same source file,   #
     # we use the 'mutable' tag to only mutate parts of the code    #
     ################################################################
-    if P mutable 0.50
-      debug "reproducing"
-      clone 
-        src       : source
-        ratio     : 0.01
-        iterations:  2
-        onComplete: (src) ->
-          debug "sending fork event"
-          master.send fork: src
+
+    if byluck mutable 0.50
+      if @transfert energyModel.FORKING
+        debug "reproducing"
+        clone 
+          src       : @source
+          ratio     : 0.01
+          iterations:  2
+          onComplete: (src) ->
+            debug "sending fork event"
+            performance = 100
+            @emit fork:
+              src: src
+              performance: performance
+            wait(2000) -> process.exit 0
     
     ###################
     # BUY/SELL STOCKS #
@@ -136,21 +150,22 @@ module.exports = (master, source, options={}) ->
     # random things - but this is a top priority for later!             #
     #####################################################################
     orders = []
-    if P mutable 1.0
-      tick = 'PEAR' # yeah fixed ticker - as I said, it's just a test
-      ticker = market.ticker tick
-      price = ticker.price
-      volume = ticker.volume
-      orders.push
-        type: if P(mutable 0.5) then 'buy' else 'sell'
-        ticker: tick
-        amount: mutable 100
-        price: price
+    if byluck mutable 1.0
+      if @transfert energyModel.BID
+        tick = 'PEAR' # yeah fixed ticker - as I said, it's just a test
+        ticker = market.ticker tick
+        price = ticker.price
+        volume = ticker.volume
+        orders.push
+          type: if byluck(mutable 0.5) then 'buy' else 'sell'
+          ticker: tick
+          amount: mutable 100
+          price: price
 
     # ask the market to execute our orders
     market.execute 
       username: account.username
       orders: orders
-      onComplete: (err) ->
+      onComplete: (err) =>
         wait(options.interval) main
   {}

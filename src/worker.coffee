@@ -13,10 +13,9 @@ timmy             = require 'timmy'
 
 {P, makeId, sha1, pick, pretty} = require './common'
 
-agent = undefined
-
 module.exports = ->
 
+  
   # log = (msg) -> console.log "(WORKER #{process.pid}) #{msg}"
   #log = (msg) -> console.log "#{msg}"
   #console.log "Worker #{process.pid} started".yellow
@@ -35,26 +34,32 @@ module.exports = ->
     preserveGeneration = config.preserveGeneration ? 0
 
     log = (msg) -> console.log "    Agent #{agentName}: #{msg}"
-    #log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta}"
+    #log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta.name}, gen #{pretty agentMeta.generation}"
 
-    master =
+    ctx =
+      source: agentMeta.src
+
+      energy: 100
 
       # agent's event emitter
-      send: (msg) ->
-        if 'log' of msg
+      emit: (msg) ->
+        #console.log "SEND #{pretty msg}"
+        if msg.log?
           level = msg.log.level ? 0
           logmsg = msg.log.msg ? ''
           if logLevel <= level
             log "#{logmsg}"
           # we don't actually send the log
 
-        else if 'die' of msg 
-            log "sending die".red
+        if msg.die?
+          log "sending die".red
           # by default, we don't kill the N first generations
-          if agentMeta.generation >  preserveGeneration
+          if agentMeta.generation > preserveGeneration
+            console.log "sending die...."
             send die: "die"
 
-        else if 'fork' of msg
+        if msg.fork?
+
           #log "sending fork".yellow
           packet =
             id: makeId()
@@ -67,27 +72,46 @@ module.exports = ->
             continue if k is 'src'
             packet[k] = v
 
+
+
           send fork: packet
 
         else
           #log "forwarding unknow message to master: #{pretty msg}"
           send msg
 
-    master.logger =
-      failure: (msg) -> master.send log: level: 0, msg: "#{msg}".red
-      alert  : (msg) -> master.send log: level: 1, msg: "#{msg}".yellow
-      success: (msg) -> master.send log: level: 2, msg: "#{msg}".green
-      info   : (msg) -> master.send log: level: 2, msg: "#{msg}"
-      debug  : (msg) -> master.send log: level: 3, msg: "#{msg}".grey
     
+
+
+    # execute an energy transfert
+    context.transfert = (amount) ->
+
+      # don't consume when no more energy
+      return no if (amount < 0) and (amount > context.energy)
+      context.energy += amount
+      yes
+
+    context.logger =
+      failure: (msg) -> context.send log: level: 0, msg: "#{msg}".red
+      alert  : (msg) -> context.send log: level: 1, msg: "#{msg}".yellow
+      success: (msg) -> context.send log: level: 2, msg: "#{msg}".green
+      info   : (msg) -> context.send log: level: 2, msg: "#{msg}"
+      debug  : (msg) -> context.send log: level: 3, msg: "#{msg}".grey
+    
+
+
+
     # create an instance of the serialized agent
 
     #console.log "agent config: #{inspect config, no, 20, yes}"
 
+    # another magic trick
     eval "var Agent = #{agentMeta.src};"
-    #console.log "created Agent: #{pretty Agent}"
 
-    Agent master, agentMeta.src, config
+    log "spawned agent #{pretty agentMeta.name}, gen #{pretty agentMeta.generation}"
+   
+    # the grand finale
+    Agent.apply context, [ config ]
 
     # we should catch exception, and report to the master
     # if the exception cannot be catch (fatal error of the V8 VM)

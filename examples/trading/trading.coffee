@@ -6,14 +6,19 @@
 timmy            = require 'timmy'
 {System, common} = require 'substrate'
 
-System
+{pretty} = common
+
+POOL_SIZE = 6
+
+system = System
 
   bootstrap: [ require './trader' ]
 
   workersByMachine: 1 # common.NB_CORES
-  decimationTrigger: 10
   
   config: (agent) ->
+
+    agent.performance ?= 0
 
     balance: 100000
     
@@ -37,3 +42,29 @@ System
         'JAVA'
         'CAFE'
       ]
+
+if system.isMaster
+  console.log "IS MASTER"
+
+  system.onFork = (agent, onComplete) ->
+
+    console.log "#{system.size()} traders"
+    # the pool is full: we start the game of throne
+    canBeForked = no
+    sorted = system.agents (a, b) -> b.performance - a.performance
+
+    console.log "traders: "
+    for trader in sorted
+      console.log " - " + trader.id
+
+    # TODO only fork if the performance is great
+    canBeForked = yes
+
+    if canBeForked or system.size() <= POOL_SIZE
+      onComplete agent
+    else
+      onComplete()
+
+  system.onDie = (agent, onComplete) ->
+    authorize = system.size() > POOL_SIZE
+    onComplete authorize

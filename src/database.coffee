@@ -12,30 +12,11 @@ class module.exports
 
     @length = 0
 
-    @batch = []
+    @queue = []
 
-  remove  : (g)     => 
-    id = g.id ? (Number) g
-    delete @_[id]
     
-  add: (agent) =>
-    id = agent.id ? makeId()
-    src = agent.src ? agent
-    generation = agent.generation ? 0
-    src = src.toString() if isFunction src
-    hash = sha1 src
-    @record {id, src, hash, generation}
-
   record  : (g)     => @_[g.id] = g ; @length++
-  size    :         => @keys().length
-  oldestGeneration: =>
-    oldest = 0
-    for k,v of @_
-      oldest = v.generation if v.generation > oldest
-    oldest
 
-  # The decimator should take params,
-  # to decimate in priority badly performing individual
 
   # up to O(N) search if we search by source code
   contains: (agent) =>
@@ -48,15 +29,17 @@ class module.exports
         if g.hash is hash
           return yes
     no
-  keys: => Object.keys @_
 
-  randomKeys: => shuffle @keys()
-
-  pick: => @_[pick @keys()]
+  add: (agent) =>
+    id = agent.id ? makeId()
+    src = agent.src ? agent
+    generation = agent.generation ? 0
+    src = src.toString() if isFunction src
+    hash = sha1 src
+    @record {id, src, hash, generation}
 
   remove: (item, onComplete) =>
     work = =>
-
 
       id = undefined
       dv = undefined
@@ -77,13 +60,9 @@ class module.exports
             break
 
       if id?
-        dv = @_[id]
-        delete @_[id]
-        idx = @batch.indexOf id
 
-        # also try to remove it from the batch
-        if idx > -1
-          @batch.splice idx, 1
+        delete @_[id]
+        #console.log "deleted #{id}. keys are now #{Object.keys @_}"
 
         @length--
 
@@ -102,20 +81,21 @@ class module.exports
       work()
 
   reduce: (reducer) => 
-    keys = @keys()
+
     #console.log "keys: #{pretty keys}"
     #([k,@_[k]] for k in keys).reduce r
     a = 0
-    for k in keys
+    for id, agent of @_
       #console.log "k: #{k}"
-      item = [k,@_[k]]
+      item = [id,agent]
       a = reducer a, item
+    a
   # pick up next individual in a round
 
   max: (f) =>
     max = -Infinity
-    for k, obj of @_
-      value = f obj
+    for id, agent of @_
+      value = f agent
       unless value?
         continue
       if value > max
@@ -124,8 +104,8 @@ class module.exports
 
   min: (f) =>
     min = Infinity
-    for k, obj of @_
-      value = f obj
+    for id, agent of @_
+      value = f agent
       unless value?
         continue
       if value < min
@@ -133,17 +113,46 @@ class module.exports
     min
 
   each: (f) =>
-    for k, v of @_
-      f v
+    for id, agent of @_
+      f agent
     @
 
-  next: =>
-    if @batch.length is 0
-      @batch = Object.keys @_
-    next = @batch.shift()
-    unless @_[next]?
-      console.log "batch: #{@batch} next: #{next}"
-      console.log pretty @_
-    @_[next]
+  agents: (cmp) =>
+    tmp = []
+    for id, agent of @_
+      tmp.push agent
+    tmp.sort(cmp ? (a, b) -> b.generation - a.generation)
+    tmp
 
+  next: =>
+    keys = Object.keys @_
+    item = @_[pick keys]
+    #console.log "item: #{item}  and keys: #{keys}"
+    item
+    ###
+    @_[id] if id of @_
+
+    # update the queue
+    queue = for id in @queue
+      if id? and id of @_
+        id
+    @queue = queue
+
+    if @queue.length is 0
+      @queue = Object.keys @_
+      if @queue.length is 0
+        console.log "ok, here the queue is really empty.. returning undefined"
+        return undefined
+
+    nextId = @queue.shift()
+    unless nextId
+      throw new Error "nextId is null"
+
+    nextAgent = @_[nextId]
+  
+    unless nextAgent?
+      throw new Error "next agent is null.. wtf"
+    
+    nextAgent
+    ###
 
