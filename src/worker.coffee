@@ -21,7 +21,7 @@ module.exports = ->
   #console.log "Worker #{process.pid} started".yellow
   
   # send a message to the master
-  send = (msg) -> process.send JSON.stringify msg
+  emit = (msg) -> process.send JSON.stringify msg
   
   process.on 'message', (msg) -> 
 
@@ -33,10 +33,10 @@ module.exports = ->
     logLevel = config.logLevel ? 0
     preserveGeneration = config.preserveGeneration ? 0
 
-    log = (msg) -> console.log "    Agent #{agentName}: #{msg}"
+    localLog = (msg) -> console.log "    Agent #{agentName}: #{msg}"
     #log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta.name}, gen #{pretty agentMeta.generation}"
 
-    ctx =
+    context =
       source: agentMeta.src
 
       energy: 100
@@ -48,15 +48,15 @@ module.exports = ->
           level = msg.log.level ? 0
           logmsg = msg.log.msg ? ''
           if logLevel <= level
-            log "#{logmsg}"
+            localLog "#{logmsg}"
           # we don't actually send the log
 
         if msg.die?
-          log "sending die".red
+          localLog "sending die".red
           # by default, we don't kill the N first generations
           if agentMeta.generation > preserveGeneration
-            console.log "sending die...."
-            send die: "die"
+            localLog "sending die...."
+            emit die: "die"
 
         if msg.fork?
 
@@ -74,11 +74,11 @@ module.exports = ->
 
 
 
-          send fork: packet
+          emit fork: packet
 
         else
           #log "forwarding unknow message to master: #{pretty msg}"
-          send msg
+          emit msg
 
     
 
@@ -92,11 +92,11 @@ module.exports = ->
       yes
 
     context.logger =
-      failure: (msg) -> context.send log: level: 0, msg: "#{msg}".red
-      alert  : (msg) -> context.send log: level: 1, msg: "#{msg}".yellow
-      success: (msg) -> context.send log: level: 2, msg: "#{msg}".green
-      info   : (msg) -> context.send log: level: 2, msg: "#{msg}"
-      debug  : (msg) -> context.send log: level: 3, msg: "#{msg}".grey
+      failure: (msg) -> context.emit log: level: 0, msg: "#{msg}".red
+      alert  : (msg) -> context.emit log: level: 1, msg: "#{msg}".yellow
+      success: (msg) -> context.emit log: level: 2, msg: "#{msg}".green
+      info   : (msg) -> context.emit log: level: 2, msg: "#{msg}"
+      debug  : (msg) -> context.emit log: level: 3, msg: "#{msg}".grey
     
 
 
@@ -108,7 +108,7 @@ module.exports = ->
     # another magic trick
     eval "var Agent = #{agentMeta.src};"
 
-    log "spawned agent #{pretty agentMeta.name}, gen #{pretty agentMeta.generation}"
+    localLog "spawned agent #{pretty agentMeta.name}, gen #{pretty agentMeta.generation}"
    
     # the grand finale
     Agent.apply context, [ config ]
@@ -120,8 +120,9 @@ module.exports = ->
 
     # meanwhile, we also send an heartbeat to the master
     # of no heartbeat are heard for 20 secs, we should kill the worker
-    repeat 5000, -> send 'heartbeat': 'heartbeat'
+    repeat 5000, -> emit 'heartbeat': 'heartbeat'
 
-  send 'ready': 0
+  emit 'ready': 0
 
   'on': (key) -> # workers can't be listened to
+  

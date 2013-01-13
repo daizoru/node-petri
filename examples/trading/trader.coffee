@@ -52,7 +52,7 @@ module.exports = (options={}) ->
     accounts: [ account ]
   
   # LISTEN TO DEBUG EVENTS FROM THE VIRTUAL MARKET
-  market.on 'debug', (msg) ->
+  market.on 'debug', (msg) =>
     debug msg.grey
 
   #############
@@ -135,7 +135,7 @@ module.exports = (options={}) ->
           src       : @source
           ratio     : 0.01
           iterations:  2
-          onComplete: (src) ->
+          onComplete: (src) =>
             debug "sending fork event"
             performance = 100
             @emit fork:
