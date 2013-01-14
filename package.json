@@ -1,6 +1,6 @@
 {
   "name": "substrate",
-  "description": "minimalist framework to build apps based on node-evolve",
+  "description": "experimental framework for evolving artificial lifeforms",
   "version": "0.0.0",
   "author": {
       "name" : "Julian Bilcke",

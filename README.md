@@ -1,7 +1,9 @@
 #node-substrate
 ===============
 
-*a multi-agent system based on node-evolve*
+*experimental framework for evolving artificial lifeforms*
+
+Like the Autoverse, only simpler. And in JavaScript.
 
 ## Description
 
@@ -39,3 +41,10 @@ To be continued
 ### 0.0.0
 
  * initial, experimental version
+
+### Interesting readings
+
+ * https://en.wikipedia.org/wiki/Genetic_programming for the historical background
+ * BUT also https://en.wikipedia.org/wiki/Genetic_engineering which I find closer to this project's goals
+ * The part on the Autoverse: https://en.wikipedia.org/wiki/Permutation_City
+ * Q6 at: http://gregegan.customer.netspace.net.au/PERMUTATION/FAQ/FAQ.html

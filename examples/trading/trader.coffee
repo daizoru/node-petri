@@ -51,17 +51,12 @@ module.exports = (options={}) ->
     tickers: options.geekdaq.tickers
     accounts: [ account ]
   
-  # LISTEN TO DEBUG EVENTS FROM THE VIRTUAL MARKET
-  market.on 'debug', (msg) =>
-    debug msg.grey
+  # LISTEN AND PRINT DEBUG EVENTS FROM THE VIRTUAL MARKET
+  market.on 'debug', (msg) => debug msg.grey
 
-  #############
-  # PENALTIES #
-  ####################################################################
-  # The agent will have to pay for its bugs - this way it should     #
-  # converge to more efficient solutions, evolving to have less bugs #
-  ####################################################################
-  energyModel =
+ 
+  Model =
+
     # PENALTIES
     NOT_ENOUGH_MONEY: -5
     NOT_IN_PORTFOLIO: -10
@@ -78,19 +73,19 @@ module.exports = (options={}) ->
   # LISTEN TO ERRORS, APPLY PENALTY FOR CRITICAL ERRORS
   # BY REMOVING ##MO#N#E#Y## ENERGY FROM THE AGENT'S BALANCE
   market.on 'error', (code, msg) =>
-    @transfert energyModel[code]
+    @transfert Model[code]
     #market.transfert account.username, energyModel[code]
     alert msg.red
 
   # start the update loop (generate the timeserie)
   market.start()
 
-  # robots that have this balance will never die
-  # that why it should be set quite high
-  BEST_BALANCE = 100000
-
   # we count the iterations: this is used by the decimation process
   iterations = 0
+
+  do constrain = =>
+    debug constraining agent..
+    wait(options.interval) constrain
 
   # an iteration 
   do main = =>
@@ -129,7 +124,7 @@ module.exports = (options={}) ->
     ################################################################
 
     if byluck mutable 0.50
-      if @transfert energyModel.FORKING
+      if @transfert Model.FORKING
         debug "reproducing"
         clone 
           src       : @source
@@ -151,13 +146,13 @@ module.exports = (options={}) ->
     #####################################################################
     orders = []
     if byluck mutable 1.0
-      if @transfert energyModel.BID
+      if @transfert Model.BID
         tick = 'PEAR' # yeah fixed ticker - as I said, it's just a test
         ticker = market.ticker tick
         price = ticker.price
         volume = ticker.volume
         orders.push
-          type: if byluck(mutable 0.5) then 'buy' else 'sell'
+          type: if mutable(byluck 0.5) then 'buy' else 'sell'
           ticker: tick
           amount: mutable 100
           price: price
