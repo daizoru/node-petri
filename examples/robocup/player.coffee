@@ -1,7 +1,7 @@
 
-module.exports = (master, source, options={}) ->
+module.exports = (options={}) ->
 
-  {failure, alert, success, info, debug}  = master.logger
+  {failure, alert, success, info, debug}  = @logger
   SimSpark             = require 'simspark'
   {repeat,wait}        = require 'ragtime'
   {mutable, clone}     = require 'evolve'
@@ -35,7 +35,6 @@ module.exports = (master, source, options={}) ->
     'rae3' # 21  Right Arm Roll       [4][2]      raj3            rae3
     'rae4' # 22  Right Arm Yaw        [4][3]      raj4            rae4
   ]
-
 
 
   config =
@@ -75,7 +74,7 @@ module.exports = (master, source, options={}) ->
 
     simspark.on 'data', (events) ->
 
-      console.log "events: #{pretty events }"
+      debug "events: " + pretty events
 
       debug "received new events.. (t: 0)" if P 0.10
       #if P 0.05
@@ -113,7 +112,7 @@ module.exports = (master, source, options={}) ->
         simspark.destroy()
         journal = []
         # TODO: send message to host?
-        master.send die: 0
+        @send die: 0
         wait(500) -> process.exit 0
         return
 
@@ -124,12 +123,12 @@ module.exports = (master, source, options={}) ->
       if P mutable 0.20
         alert "reproducing"
         clone 
-          src       : source
+          src       : @source
           ratio     : 0.01
           iterations:  2
-          onComplete: (src) ->
+          onComplete: (src) =>
             debug "sending fork event"
-            master.send fork: src
+            @send fork: src
 
       messages = []
 

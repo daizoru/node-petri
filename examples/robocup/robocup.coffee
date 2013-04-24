@@ -16,7 +16,9 @@ System
   config: (agent) ->
 
     server:
-      host: 'localhost'
+      #host: '127.0.0.1'
+      #host: 'localhost'
+      host: '10.211.55.5'
       port: 3100
 
     game:

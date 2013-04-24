@@ -1,5 +1,5 @@
 
-module.exports = (master, source, options={}) ->
+module.exports = (options={}) ->
 
   baudio               = require 'baudio'
   tune                 = require 'tune'
@@ -9,10 +9,10 @@ module.exports = (master, source, options={}) ->
   {mutable, clone}     = require 'evolve'
   substrate            = require 'substrate'
   {P, copy, pretty}    = substrate.common
-  {failure, alert, success, info, debug} = master.logger
 
-  pretty = (obj) -> "#{inspect obj, no, 20, yes}"
+  console.log pretty @
 
+  {failure, alert, success, info, debug} = @logger
 
 
   if P mutable 0.00
@@ -21,9 +21,9 @@ module.exports = (master, source, options={}) ->
       src       : source
       ratio     : 0.01
       iterations:  2
-      onComplete: (src) ->
+      onComplete: (src) =>
         debug "sending fork event"
-        master.send fork: src
+        @send fork: src
 
   # it's a jazzy strain so it is random - or is it?
   keys =  
@@ -36,7 +36,7 @@ module.exports = (master, source, options={}) ->
     'D4':  mutable 50
     'F4':  mutable 50
 
-  notes = for i in [0..50]
+  notes = for i in [0..10]
     # update deck's probabilities dependending on what has been played before?
 
     # read nodes
@@ -45,11 +45,12 @@ module.exports = (master, source, options={}) ->
     deck.pick keys
 
   track = tune notes,
-    tempo: 10
+    tempo: 20
     volume: 1.0
 
   b = baudio()
   b.push (t) -> track t
   b.play()
+  success "play() ended"
 
   {}
