@@ -259,8 +259,8 @@ module.exports = (options={}) ->
       switch state
         when 'play'
           play step++                 # synchronous
-          do reproduce if step is 20  # asynchronous
-          if step is 40 # asynchronous
+          do reproduce if step is 10  # asynchronous
+          if step is 20 # asynchronous
             state = 'ended'
 
         when 'connecting'

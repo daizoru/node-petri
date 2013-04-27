@@ -128,6 +128,8 @@ class module.exports
     keys = Object.keys @_
     item = @_[pick keys]
     #console.log "item: #{item}  and keys: #{keys}"
+    #console.log "Database.next() picked item #{pretty item}"
+    #console.log "Database._ -> #{pretty @_}"
     item
     ###
     @_[id] if id of @_

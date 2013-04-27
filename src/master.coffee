@@ -21,7 +21,7 @@ debug = (msg) ->
 class Master extends Stream
 
   constructor: (options={}) ->
-    #console.log "master started with options: "+pretty options
+    console.log "master started with options: "+pretty options
 
     workersByMachine   = @workersByMachine   = options.workersByMachine  ? NB_CORES
     databaseSize       = @databaseSize       = options.databaseSize      ? 10
@@ -85,11 +85,12 @@ class Master extends Stream
           agent = database.next()
 
           if agent?
-            #log "spawning agent #{agent.id} to ##{worker.id}"
+            log "spawning agent #{agent.id} to ##{worker.id}"
             worker.agent = agent
             agent.name = "#{agent.id}"[-8..]
+            #log "agent: " + pretty agent
             agent.config = agentConfigurator agent
-
+            #log "agent.Config: " + pretty agent.config
             # is logLevel is not defined in the agent config, we try to
             # use the one from options, else 0
             agent.config.logLevel ?= logLevel ? 0
@@ -111,7 +112,7 @@ class Master extends Stream
             @onFork msg.fork, (ok) ->
               if ok?
                 #log "fork #{msg.fork.id} by agent #{worker.agent.id} is authorized"
-                database.record ok
+                database.record msg.fork
               else
                 #log "fork denied"
                 return

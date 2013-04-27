@@ -52,11 +52,13 @@ module.exports = ->
           # we don't actually send the log
 
         if msg.die?
-          localLog "sending die".red
+  
           # by default, we don't kill the N first generations
           if agentMeta.generation > preserveGeneration
-            localLog "sending die...."
+            localLog "accepting death..".red
             emit die: "die"
+          else
+            localLog "ignoring death..".yellow
 
         if msg.fork?
 
@@ -103,7 +105,7 @@ module.exports = ->
     # another magic trick
     eval "var Agent = #{agentMeta.src};"
 
-    localLog "spawned agent #{pretty agentMeta.name}, gen #{pretty agentMeta.generation}"
+    #localLog "spawned agent #{pretty agentMeta.name}, gen #{pretty agentMeta.generation}"
    
     # the grand finale
     Agent.apply context, [ config ]
