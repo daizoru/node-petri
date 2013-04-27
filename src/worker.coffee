@@ -33,7 +33,7 @@ module.exports = ->
     logLevel = config.logLevel ? 0
     preserveGeneration = config.preserveGeneration ? 0
 
-    localLog = (msg) -> console.log "    Agent #{agentName}: #{msg}"
+    localLog = (msg) -> console.log " #{agentName}: #{msg}"
     #log "WORKER RECEIVED AGENT FROM MASTER: #{pretty agentMeta.name}, gen #{pretty agentMeta.generation}"
 
     context =

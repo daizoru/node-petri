@@ -16,9 +16,7 @@ System
   config: (agent) ->
 
     server:
-      #host: '127.0.0.1'
-      #host: 'localhost'
-      host: '10.211.55.5'
+      host: 'localhost'
       port: 3100
 
     game:
@@ -27,6 +25,4 @@ System
       number: 0
 
     engine:
-      updateInterval: 1.sec
-      journalSize: 50
-      journal: []
+      updateInterval: 3.sec
