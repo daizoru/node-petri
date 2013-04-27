@@ -25,4 +25,4 @@ System
       number: 0
 
     engine:
-      updateInterval: 3.sec
+      updateInterval: 500.ms

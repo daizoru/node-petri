@@ -29,8 +29,9 @@ randInt = exports.randInt = (min, max) ->
     Math.round(min + (Math.random() * (max - min)))
 
 sha1   = exports.sha1   = (src) ->
+  console.log "sha1fying \"#{src}\""
   shasum = crypto.createHash 'sha1'
-  shasum.update src
+  shasum.update new Buffer "#{src}"
   shasum.digest 'hex'
 
 

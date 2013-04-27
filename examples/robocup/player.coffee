@@ -3,39 +3,49 @@
 module.exports = (options={}) ->
 
   {failure, alert, success, info, debug}  = @logger
+  emit = @emit
+  source = @source
+
   SimSpark             = require 'simspark'
   {repeat,wait}        = require 'ragtime'
   {mutable, clone}     = require 'evolve'
   substrate            = require 'substrate'
-  {P, copy, pretty}    = substrate.common
  
-  round2 = (x) -> Math.round(x*100)/100
+  {P, copy, pretty}    = substrate.common
+  
+  Nao = 
+    nbEffectors: 22
+    effectors: [
+      #      No.   Description          Hinge Joint Perceptor name  Effector name
+      'he1'  # 0   Neck Yaw             [0][0]      hj1             he1
+      'h2'   # 1   Neck Pitch           [0][1]      hj2             he2
 
-  EFFECTORS = [
-    #      No.   Description          Hinge Joint Perceptor name  Effector name
-    'he1'  # 1   Neck Yaw             [0][0]      hj1             he1
-    'h2'   # 2   Neck Pitch           [0][1]      hj2             he2
-    'lae1' # 3   Left Shoulder Pitch  [1][0]      laj1            lae1
-    'lae2' # 4   Left Shoulder Yaw    [1][1]      laj2            lae2
-    'lae3' # 5   Left Arm Roll        [1][2]      laj3            lae3
-    'lae4' # 6   Left Arm Yaw         [1][3]      laj4            lae4
-    'lle1' # 7   Left Hip YawPitch    [2][0]      llj1            lle1
-    'lle2' # 8   Left Hip Roll        [2][1]      llj2            lle2
-    'lle3' # 9   Left Hip Pitch       [2][2]      llj3            lle3
-    'lle4' # 10  Left Knee Pitch      [2][3]      llj4            lle4
-    'lle5' # 11  Left Foot Pitch      [2][4]      llj5            lle5
-    'lle6' # 12  Left Foot Roll       [2][5]      llj6            lle6
-    'rle1' # 13  Right Hip YawPitch   [3][0]      rlj1            rle1
-    'rle2' # 14  Right Hip Roll       [3][1]      rlj2            rle2
-    'rle3' # 15  Right Hip Pitch      [3][2]      rlj3            rle3
-    'rle4' # 16  Right Knee Pitch     [3][3]      rlj4            rle4
-    'rle5' # 17  Right Foot Pitch     [3][4]      rlj5            rle5
-    'rle6' # 18  Right Foot Roll      [3][5]      rlj6            rle6
-    'rae1' # 19  Right Shoulder Pitch [4][0]      raj1            rae1
-    'rae2' # 20  Right Shoulder Yaw   [4][1]      raj2            rae2
-    'rae3' # 21  Right Arm Roll       [4][2]      raj3            rae3
-    'rae4' # 22  Right Arm Yaw        [4][3]      raj4            rae4
-  ]
+      'lae1' # 2   Left Shoulder Pitch  [1][0]      laj1            lae1
+      'lae2' # 3   Left Shoulder Yaw    [1][1]      laj2            lae2
+      'lae3' # 4   Left Arm Roll        [1][2]      laj3            lae3
+      'lae4' # 5   Left Arm Yaw         [1][3]      laj4            lae4
+      'lle1' # 6   Left Hip YawPitch    [2][0]      llj1            lle1
+      'lle2' # 7   Left Hip Roll        [2][1]      llj2            lle2
+      'lle3' # 8   Left Hip Pitch       [2][2]      llj3            lle3
+      'lle4' # 9   Left Knee Pitch      [2][3]      llj4            lle4
+      'lle5' # 10  Left Foot Pitch      [2][4]      llj5            lle5
+      'lle6' # 11  Left Foot Roll       [2][5]      llj6            lle6
+
+      'rle1' # 12  Right Hip YawPitch   [3][0]      rlj1            rle1
+      'rle2' # 13  Right Hip Roll       [3][1]      rlj2            rle2
+      'rle3' # 14  Right Hip Pitch      [3][2]      rlj3            rle3
+      'rle4' # 15  Right Knee Pitch     [3][3]      rlj4            rle4
+      'rle5' # 16  Right Foot Pitch     [3][4]      rlj5            rle5
+      'rle6' # 17  Right Foot Roll      [3][5]      rlj6            rle6
+      'rae1' # 18  Right Shoulder Pitch [4][0]      raj1            rae1
+      'rae2' # 19  Right Shoulder Yaw   [4][1]      raj2            rae2
+      'rae3' # 20  Right Arm Roll       [4][2]      raj3            rae3
+      'rae4' # 21  Right Arm Yaw        [4][3]      raj4            rae4
+    ]
+
+  round2 = (x) -> Math.round(x*100)/100
+  round3 = (x) -> Math.round(x*1000)/1000
+  randInt = (min,max) -> Math.round(min + Math.random() * (max - min))
 
 
   config =
@@ -59,36 +69,39 @@ module.exports = (options={}) ->
   journal = config.engine.journal
   journalize = no # disabled for now
 
+  number = config.game.number
+  team   = config.game.team
+  side   = 'Left'
 
   state = 'connecting'
+  playmode = ''
 
   alert "connecting to the game server.."
   simspark = new SimSpark config.server.host, config.server.port
 
-  simspark.on 'connect', =>
+  simspark.on 'connect', ->
     success "connected"
     state = 'waiting'
 
     # SEND INITIALIZATION DATA TO SIMULATION
-    wait(2000) =>
+    wait(500) ->
       alert "installing the scene and player.."
       simspark.send [
         [ "scene", config.game.scene ]
         [ "init", 
           [ 
-            [ "unum",     config.game.number ]
-            [ "teamname", config.game.team   ] 
+            [ "unum",     number ]
+            [ "teamname", team   ] 
           ]
         ]
       ]
-
 
 
       # beam effector, to position a player
       #sim.send ['beam', 10.0, -10.0, 0.0 ]
 
 
-    simspark.on 'data', (events) =>
+    simspark.on 'data', (events) ->
 
       #debug "events: " + pretty events
 
@@ -98,7 +111,7 @@ module.exports = (options={}) ->
             for nfo in evt[1..]
               switch nfo[0]
                 when 't'  then 0
-                when 'pm' then state = nfo[1]
+                when 'pm' then playmode = nfo[1]
                 else
                   alert "unknow code " + nfo[0]
 
@@ -108,30 +121,91 @@ module.exports = (options={}) ->
       #  journal.unshift events
       #  journal.pop() if journal.length > config.engine.journalSize
 
-    simspark.on 'close', => 
+    simspark.on 'close', -> 
       alert "disconnected from server"
       state = 'disconnected'
   
-    simspark.on 'error', (er) =>
+    simspark.on 'error', (er) ->
       alert "simspark error: " + pretty er
       state = 'disconnected'
 
-    S = for i in [0...EFFECTORS.length]
+    S = for i in [0...Nao.nbEffectors]
       0.0
+    sendUpdates = (U) ->
+      updates = for i in [0...U.length]
+        U[i] = round3 U[i] # round the value to 2 decimals
+        continue if S[i] is U[i]
+        # if value changed, we updated SPEEDS and sned an update message
+        S[i] = U[i]
+        [ Nao.effectors[i], S[i] ]
+      simspark.send updates
+      updates
 
-    do main = =>
-    
-      # check the current state
+  
+    play = (t) ->
+      #out.push ['lae3', 5.3]
+
+      # hello world
+      U = for i in [0...Nao.nbEffectors]
+        S[i]
+
+      if no
+        U[2]  = 0.5 * (Math.random())
+        U[12] = 0.5 * (Math.random())
+        U[9]  = 0.5 * (Math.random())
+        U[7]  = 0.5 * (Math.random())
+        U[5]  = 0.5 * (Math.random())
+
+
+      global_speed = 1.0
+
+      U[2]  = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
+      U[12] = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
+      U[9]  = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
+      U[7]  = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
+      U[5]  = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
+
+      updated = sendUpdates U
+      if updated.length
+        debug "updates: " + pretty updated
+
+    reproduce = (onComplete) -> process.nextTick ->
+      alert "reproducing"
+      clone 
+        src       : source
+        ratio     : Math.min 0.60, mutable 0.01
+        iterations:  2
+        onComplete: (src) ->
+          debug "sending fork event: \"#{source}\""
+          emit fork: src: source
+          wait(1)(onComplete) if onComplete?
+
+    exit = (code=0) -> process.nextTick ->
+      alert 'exiting..'
+      #simspark.close()
+      emit die: code
+      wait(300) -> process.exit code
+
+    #############
+    # MAIN LOOP #
+    #############
+    step = 0
+    do looper = ->
+
+
+      #######################
+      # SimSpark Play Modes #
+      #######################
       # http://simspark.sourceforge.net/wiki/index.php/Play_Modes
-      switch state
+  
+      switch playmode
         when 'BeforeKickOff'
           debug "Before Kick Off"
           alert "scene ready! waiting for kick off.."
 
-          #@@@@@@@ too bad the player cannot be a machine learning monitor too
+          # too bad the player cannot be a machine learning monitor too
           #simspark.send [[ 'playMode', 'KickOff_Left' ]]
           #state = 'kickoff requested'
-
 
         when 'KickOff_Left'
           debug "Kick Off Left"
@@ -141,32 +215,6 @@ module.exports = (options={}) ->
 
         when 'PlayOn'
           debug "Play On"
-
-          #out.push ['lae3', 5.3]
-
-          # hello world
-          U = for i in [0...EFFECTORS.length]
-            S[i]
-
-          #U[4] += Math.random() * 2 - 1
-
-          U[1] = 0.1 * Math.random() * 2 - 1
-
-          #U[10] += Math.random() * 2 - 1
-
-
-          # check if some effectors changed, only send changes over the network
-          updates = for i in [0...U.length]
-            U[i] = round2 U[i] # round the value to 2 decimals
-            continue if S[i] is U[i]
-            # if value changed, we updated SPEEDS and sned an update message
-            S[i] = U[i]
-            [ EFFECTORS[i], S[i] ]
-
-          debug "updates: " + pretty updates
-          simspark.send updates
-
-
 
         when 'KickIn_Left'
           debug "Kick In Left"
@@ -194,15 +242,7 @@ module.exports = (options={}) ->
 
         when 'GameOver'
           debug "Game Over"
-          if P Math.min 1.0, mutable 1.0
-            alert "reproducing"
-            clone 
-              src       : @source
-              ratio     : Math.min 0.60, mutable 0.01
-              iterations:  2
-              onComplete: (src) =>
-                debug "sending fork event"
-                @send fork: src
+          state = 'ended'
 
         when 'Goal_Left'
           debug "Goal Left"
@@ -216,28 +256,30 @@ module.exports = (options={}) ->
         when 'free_kick_right'
           debug "Free Kick Right"
 
+      switch state
+        when 'play'
+          play step++                 # synchronous
+          do reproduce if step is 20  # asynchronous
+          if step is 40 # asynchronous
+            state = 'ended'
+
         when 'connecting'
           alert "connecting to the server.."
 
         when 'waiting'
           debug "waiting for the scene to be installed.."
+          if playmode is 'KickOff_Left' or playmode is 'PlayOn'
+            debug "we can play!"
+            state = 'play'
 
-        when 'disconnected'
-          state = 'exiting'
-          alert "if we are disconnected, we need to exit"
-          simspark.close()
-          # TODO: send message to host?
-
-
-        when 'exiting'
-          alert 'exiting..'
-          state = 'void'
-          @send die: 0
-          wait(600) -> process.exit 0
-        when 'void'
-          debug "..."
-        else
-          debug "Unknow state: " + state
-      wait(config.engine.updateInterval) main
+        when 'ended', 'disconnected'
+          if state is 'exit'
+            debug "exit in progress.."
+          else
+            debug "simulation ended, or we are disconnected"
+            state = 'exit'
+            do exit
+      
+      wait(config.engine.updateInterval) looper
 
   {}

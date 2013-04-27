@@ -43,7 +43,7 @@ module.exports = ->
 
       # agent's event emitter
       emit: (msg) ->
-        #console.log "SEND #{pretty msg}"
+        #console.log "EMIT #{pretty msg}"
         if msg.log?
           level = msg.log.level ? 0
           logmsg = msg.log.msg ? ''
@@ -60,7 +60,7 @@ module.exports = ->
 
         if msg.fork?
 
-          #log "sending fork".yellow
+          localLog "sending fork".yellow
           packet =
             id: makeId()
             generation: agentMeta.generation + 1
@@ -80,9 +80,6 @@ module.exports = ->
           #log "forwarding unknow message to master: #{pretty msg}"
           emit msg
 
-    
-
-
     # execute an energy transfert
     context.transfert = (amount) ->
 
@@ -98,8 +95,6 @@ module.exports = ->
       info   : (msg) -> context.emit log: level: 2, msg: "#{msg}"
       debug  : (msg) -> context.emit log: level: 3, msg: "#{msg}".grey
     
-
-
 
     # create an instance of the serialized agent
 
