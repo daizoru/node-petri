@@ -159,12 +159,27 @@ module.exports = (options={}) ->
 
       global_speed = 1.0
 
-      U[2]  = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
-      U[12] = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
-      U[9]  = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
-      U[7]  = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
-      U[5]  = global_speed * mutable(0.1 * Math.random() + 0.01 * t)
-
+      U[2]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[3] = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[4]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[5]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[6]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[7]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[8] = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[9]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[10]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[11]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[12]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[13]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[14]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[15]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[16]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[17]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[18]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[19]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[20]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+      U[21]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+ 
       updated = sendUpdates U
       if updated.length
         debug "updates: " + pretty updated
@@ -173,10 +188,10 @@ module.exports = (options={}) ->
       alert "reproducing"
       clone 
         src       : source
-        ratio     : Math.min 0.60, mutable 0.01
+        ratio     : 0.60 # Math.min 0.60, mutable 0.40
         iterations:  2
         onComplete: (src) ->
-          debug "sending fork event: \"#{source}\""
+          #debug "sending fork event: \"#{source}\""
           emit fork: src: source
           wait(1)(onComplete) if onComplete?
 
