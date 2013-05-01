@@ -28,6 +28,10 @@ randInt = exports.randInt = (min, max) ->
   else
     Math.round(min + (Math.random() * (max - min)))
 
+  
+round2 = exports.round2 = (x) -> Math.round(x*100)/100
+round3 = exports.round3 = (x) -> Math.round(x*1000)/1000
+
 sha1   = exports.sha1   = (src) ->
   #console.log "sha1fying \"#{src}\""
   shasum = crypto.createHash 'sha1'

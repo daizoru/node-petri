@@ -11,179 +11,122 @@ module.exports = (options={}) ->
   {mutable, clone}     = require 'evolve'
   substrate            = require 'substrate'
  
-  {P, copy, pretty}    = substrate.common
-  
-  Nao = 
-    nbEffectors: 22
-    effectors: [
-      #      No.   Description          Hinge Joint Perceptor name  Effector name
-      'he1'  # 0   Neck Yaw             [0][0]      hj1             he1
-      'h2'   # 1   Neck Pitch           [0][1]      hj2             he2
+  {P, copy, pretty, round2, round3, randInt}    = substrate.common
 
-      'lae1' # 2   Left Shoulder Pitch  [1][0]      laj1            lae1
-      'lae2' # 3   Left Shoulder Yaw    [1][1]      laj2            lae2
-      'lae3' # 4   Left Arm Roll        [1][2]      laj3            lae3
-      'lae4' # 5   Left Arm Yaw         [1][3]      laj4            lae4
-      'lle1' # 6   Left Hip YawPitch    [2][0]      llj1            lle1
-      'lle2' # 7   Left Hip Roll        [2][1]      llj2            lle2
-      'lle3' # 8   Left Hip Pitch       [2][2]      llj3            lle3
-      'lle4' # 9   Left Knee Pitch      [2][3]      llj4            lle4
-      'lle5' # 10  Left Foot Pitch      [2][4]      llj5            lle5
-      'lle6' # 11  Left Foot Roll       [2][5]      llj6            lle6
+  # Errors have a cost, and impact the motivation of the player
+  # a player not motivated might declare forfeit the game -> death!
+  motivation = 10000
+  ERR = substrate.errors (value, msg) -> motivation -= value ; msg
 
-      'rle1' # 12  Right Hip YawPitch   [3][0]      rlj1            rle1
-      'rle2' # 13  Right Hip Roll       [3][1]      rlj2            rle2
-      'rle3' # 14  Right Hip Pitch      [3][2]      rlj3            rle3
-      'rle4' # 15  Right Knee Pitch     [3][3]      rlj4            rle4
-      'rle5' # 16  Right Foot Pitch     [3][4]      rlj5            rle5
-      'rle6' # 17  Right Foot Roll      [3][5]      rlj6            rle6
-      'rae1' # 18  Right Shoulder Pitch [4][0]      raj1            rae1
-      'rae2' # 19  Right Shoulder Yaw   [4][1]      raj2            rae2
-      'rae3' # 20  Right Arm Roll       [4][2]      raj3            rae3
-      'rae4' # 21  Right Arm Yaw        [4][3]      raj4            rae4
-    ]
-
-  round2 = (x) -> Math.round(x*100)/100
-  round3 = (x) -> Math.round(x*1000)/1000
-  randInt = (min,max) -> Math.round(min + Math.random() * (max - min))
-
-
-  config =
-    server:
-      host  : options.server?.host ? "localhost"
-      port  : options.port?.port   ? 3100
-    game:
-      scene : options.game.scene
-      team  : options.game?.team   ? "DEFAULT"
-      number: options.game?.number ? 0
-    engine:
-      updateInterval: options.engine?.updateInterval ? 1000
-      journalSize   : options.engine?.journalSize    ? 50
-      journal       : options.engine?.journal        ? []
-
-  # Errors have a cost
-  health = 10000
-  ERR = substrate.errors (value, msg) -> health -= value ; msg
-
-
-  journal = config.engine.journal
-  journalize = no # disabled for now
-
-  number = config.game.number
-  team   = config.game.team
+  #############
+  # VARIABLES #
+  #############
+  number = options.game.number ? 0
+  team   = options.game.team
   side   = 'Left'
-
   state = 'connecting'
   playmode = ''
+  t = 0
 
   alert "connecting to the game server.."
-  simspark = new SimSpark config.server.host, config.server.port
+  sim = new SimSpark()
 
-  simspark.on 'connect', ->
-    success "connected"
+  sim.on 'close', ->  
+    state = 'disconnected'
+  
+  sim.on 'error', (er) ->
+    alert "simspark error: " + pretty er
+    state = 'disconnected'
+
+  sim.on 'connect', ->
     state = 'waiting'
-
-    # SEND INITIALIZATION DATA TO SIMULATION
-    wait(500) ->
-      alert "installing the scene and player.."
-      simspark.send [
-        [ "scene", config.game.scene ]
-        [ "init", 
-          [ 
-            [ "unum",     number ]
-            [ "teamname", team   ] 
-          ]
-        ]
-      ]
+    alert "connected! preparing the scene.."
+    sim.send [
+      [ "scene", options.game.scene ]
+      [ "init", [[ "unum", number ],[ "teamname", team ]]]
+    ]
 
 
-      # beam effector, to position a player
-      #sim.send ['beam', 10.0, -10.0, 0.0 ]
-
-
-    simspark.on 'data', (events) ->
-
-      #debug "events: " + pretty events
-
-      for evt in events
-        switch evt[0]
-          when 'GS'
-            for nfo in evt[1..]
-              switch nfo[0]
-                when 't'  then 0
-                when 'pm' then playmode = nfo[1]
-                else
-                  alert "unknow code " + nfo[0]
-
-
-      # ADD TO THE GAME EVENTS JOURNAL
-      #if journalize
-      #  journal.unshift events
-      #  journal.pop() if journal.length > config.engine.journalSize
-
-    simspark.on 'close', -> 
-      alert "disconnected from server"
-      state = 'disconnected'
-  
-    simspark.on 'error', (er) ->
-      alert "simspark error: " + pretty er
-      state = 'disconnected'
-
-    S = for i in [0...Nao.nbEffectors]
-      0.0
-    sendUpdates = (U) ->
-      updates = for i in [0...U.length]
-        U[i] = round3 U[i] # round the value to 2 decimals
-        continue if S[i] is U[i]
+    # keep track of what we sent in last, to save badnwidth and calls
+    alreadySet = []
+    buffer = []
+    
+    # flush changes, by sending a batch of events to the webserver
+    # this is an optimized batch, aiming at saving the number of packets, and packet size
+    flush = ->
+      batch = for i in [0...buffer.length]
+        continue unless buffer[i]? # when writing to random array position, the first may be empty
+        continue if isNaN buffer[i]
+        buffer[i] = round3 buffer[i] # round the value to 2 decimals
+        continue if buffer[i] is alreadySet[i]
         # if value changed, we updated SPEEDS and sned an update message
-        S[i] = U[i]
-        [ Nao.effectors[i], S[i] ]
-      simspark.send updates
-      updates
+        alreadySet[i] = buffer[i]
+        [ options.robot.effectors[i], buffer[i] ]
+      buffer = []
+      sim.send batch
+      batch
 
-  
-    play = (t) ->
-      #out.push ['lae3', 5.3]
+    sim.on 'gs', (args) ->
+      #debug 'game state'
+      for nfo in args
+        switch nfo[0]
+          when 't'  then t = nfo[1]
+          when 'pm' then playmode = nfo[1]
+          else
+            alert "unknow GS attribute: " + pretty nfo
 
-      # hello world
-      U = for i in [0...Nao.nbEffectors]
-        S[i]
+    sim.on 'time', (args) ->
+      # timestamp
 
-      if no
-        U[2]  = 0.5 * (Math.random())
-        U[12] = 0.5 * (Math.random())
-        U[9]  = 0.5 * (Math.random())
-        U[7]  = 0.5 * (Math.random())
-        U[5]  = 0.5 * (Math.random())
+    sim.on 'agentstate', (args) ->
+      temperature = args[0][1]
+      battery     = args[1][1]
+      debug "temperature: #{temperature}, battery: #{battery}"
 
 
-      global_speed = 1.0
+    sim.on 'frp', (args) ->
+      #debug "Sensor: Force-resistance: " + pretty args
 
-      U[2]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[3] = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[4]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[5]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[6]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[7]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[8] = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[9]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[10]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[11]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[12]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[13]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[14]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[15]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[16]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[17]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[18]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[19]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[20]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
-      U[21]  = global_speed * mutable(0.5 * Math.random() + 0.1 * t)
+    sim.on 'gyr', (args) ->
+      #debug "Sensor: Gyroscope: " + pretty args
+
+    sim.on 'acc', (args) ->
+      #debug "Sensor: Acceleration: " + pretty args
+            
+    sim.on 'see', (args) ->
+      #debug "Sensor: Simplified vision"
+
+
+    sim.on 'hj', (args) ->
+      #debug "Sensor: Hinge Joint"
+      # do something with the value
+      # 
+      # t is important, it tells the player if he should hurry or not
+      # we should keep an history of effectors and sensors,
+      # and game state - this is important for overall dynamic gameplay
+      buffer[0]   = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[1]   = mutable  0.5 * Math.random() + 0.001 * t 
+      buffer[2]   = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[3]   = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[4]   = mutable -0.5 * Math.random() + 0.001 * t
+      buffer[5]   = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[6]   = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[7]   = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[8]   = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[9]   = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[10]  = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[11]  = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[12]  = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[13]  = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[14]  = mutable -0.5 * Math.random() + 0.001 * t
+      buffer[15]  = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[16]  = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[17]  = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[18]  = mutable -0.5 * Math.random() + 0.001 * t
+      buffer[19]  = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[20]  = mutable  0.5 * Math.random() + 0.001 * t
+      buffer[21]  = mutable  0.5 * Math.random() + 0.001 * t
  
-      updated = sendUpdates U
-      if updated.length
-        debug "updates: " + pretty updated
-
     reproduce = (onComplete) -> process.nextTick ->
       alert "reproducing"
       clone 
@@ -207,20 +150,12 @@ module.exports = (options={}) ->
     step = 0
     do looper = ->
 
-
-      #######################
-      # SimSpark Play Modes #
-      #######################
       # http://simspark.sourceforge.net/wiki/index.php/Play_Modes
   
       switch playmode
         when 'BeforeKickOff'
           debug "Before Kick Off"
           alert "scene ready! waiting for kick off.."
-
-          # too bad the player cannot be a machine learning monitor too
-          #simspark.send [[ 'playMode', 'KickOff_Left' ]]
-          #state = 'kickoff requested'
 
         when 'KickOff_Left'
           debug "Kick Off Left"
@@ -273,9 +208,15 @@ module.exports = (options={}) ->
 
       switch state
         when 'play'
-          play step++                 # synchronous
-          do reproduce if step is 10  # asynchronous
-          if step is 20 # asynchronous
+          step++
+          flushed = flush()
+          #if flushed.length
+          #  debug "flushed: " + pretty flushed
+
+          if step is 10
+            do reproduce
+
+          if step is 20
             state = 'ended'
 
         when 'connecting'
@@ -291,10 +232,13 @@ module.exports = (options={}) ->
           if state is 'exit'
             debug "exit in progress.."
           else
-            debug "simulation ended, or we are disconnected"
+            if state is 'ended'
+              debug "simulation ended"
+            else
+              debug "we are disconnected"
             state = 'exit'
             do exit
       
-      wait(config.engine.updateInterval) looper
+      wait(options.engine.updateInterval) looper
 
   {}

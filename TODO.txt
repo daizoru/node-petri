@@ -1,0 +1,4 @@
+
+
+ - utility agents (that are not genetically engineered, eg. a teacher agent, a monitor, a simspark server..)
+ - online agents
