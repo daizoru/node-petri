@@ -1,5 +1,5 @@
-#node-substrate
-===============
+#node-petri
+===========
 
 *experimental framework for evolving artificial lifeforms*
 
