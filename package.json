@@ -1,31 +1,25 @@
 {
-  "name": "substrate",
-  "description": "experimental framework for evolving artificial lifeforms",
+  "name": "petri",
+  "description": "work in progress",
   "version": "0.0.0",
   "author": {
       "name" : "Julian Bilcke",
       "email" : "julian.bilcke@daizoru.com",
-      "url" : "http://daizoru.github.com/node-substrate"
+      "url" : "http://daizoru.github.com/node-petri"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/daizoru/node-substrate.git"
+    "url": "https://github.com/daizoru/node-petri.git"
   },
   "keywords": [
-    "evolutionary design",
-    "genetic programming",
-    "genetic algorithm",
-    "swarm computing",
-    "multi-agents system",
-    "distributed systems"
   ],
   "scripts"     : {
     "test"      : "node_modules/mocha/bin/mocha --bail --require chai --compilers coffee:coffee-script test/*.coffee",
     "build"     : "node_modules/coffee-script/bin/coffee --compile --output lib/ src/",
     "watch"     : "node_modules/coffee-script/bin/coffee --watch --compile --output lib/ src/"
   },
-  "bin" : "./bin/substrate",
-  "main" : "./lib/substrate",
+  "bin" : "./bin/petri",
+  "main" : "./lib/petri",
   "licence" : "./LICENSE.txt",
   "dependencies" : {
      "evolve"         : "*",
