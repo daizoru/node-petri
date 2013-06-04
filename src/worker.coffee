@@ -51,17 +51,7 @@ module.exports = ->
             localLog "#{logmsg}"
           # we don't actually send the log
 
-        if msg.die?
-  
-          # by default, we don't kill the N first generations
-          if agentMeta.generation > preserveGeneration
-            localLog "accepting death..".red
-            emit die: "die"
-          else
-            localLog "ignoring death..".yellow
-
         if msg.fork?
-
           localLog "sending fork".yellow
           packet =
             id: makeId()
@@ -73,8 +63,6 @@ module.exports = ->
           for k, v of msg.fork
             continue if k is 'src'
             packet[k] = v
-
-
 
           emit fork: packet
 

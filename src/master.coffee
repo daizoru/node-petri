@@ -29,10 +29,14 @@ class Master extends Stream
     maxGenerations     = @maxGenerations     = options.maxGenerations    ? Infinity
     logLevel           = @logLevel           = options.logLevel          ? 0
     stopIfEmpty        = @stopIfEmpty        = options.stopIfEmpty       ? yes
+   
+    onFork = options.onFork ? -> 
+    onMsg  = options.onMsg  ? -> 
+    onExit = options.onExit ? -> 
 
-    agentConfigurator  = options.config                                  ? -> {}
+    agentConfigurator  = options.config ? -> {}
 
-    restart_delay      = 500.ms
+    restart_delay = 500.ms
     nbGenerations = 0
 
     @isMaster = yes
@@ -81,7 +85,6 @@ class Master extends Stream
 
           # dirty way to check if the bootstrap list changed
           # database won't add new agent.. probably..
-
           agent = database.next()
 
           if agent?
@@ -94,7 +97,7 @@ class Master extends Stream
             # is logLevel is not defined in the agent config, we try to
             # use the one from options, else 0
             agent.config.logLevel ?= logLevel ? 0
-
+            worker.agent = agent
             send agent
           else
             if stopIfEmpty
@@ -106,72 +109,41 @@ class Master extends Stream
               log "waiting.."
 
         if 'fork' of msg
-          #log "agent want to fork"
           # TODO create a temporary agent!
-          process.nextTick =>
-            @onFork msg.fork, (ok) ->
-              if ok?
-                #log "fork #{msg.fork.id} by agent #{worker.agent.id} is authorized"
-                database.record msg.fork
-              else
-                #log "fork denied"
-                return
-              return
-
-        if 'die' of msg
-          process.nextTick =>
-            #log "agent #{agent.id} want to die: #{msg.die}"
-            @onDie agent, (granted) ->
-              if granted
-                #log "death granted for #{agent.id}"
-                database.remove agent.id
-                #log "database.removed #{agent.id}"
-              else
-                #log "death denied"
-                return
-              return
-
+          log "agent #{agent.id} asking for fork"
+          database.record msg.fork
+          onFork 
+            agent: agent
+            fork: msg.fork
+    
         if 'msg' of msg
-          process.nextTick =>
-            #log "agent #{agent.id} want to transmit a message: #{msg.msg}"
-            # legacy event message system
-            @onMsg agent, msg.msg
+          onMsg
+            agent: agent
+            msg: msg.msg
 
 
     # reload workers if necessary
     cluster.on "exit", (worker, code, signal) -> 
-      log "worker #{worker.id} exited: " + if code > 0 then "#{code}".red else "#{code}".green
-      wait(restart_delay) -> spawn() 
+      log "worker #{worker.id} exited (agent #{worker.agent.id}): " + if code > 0 then "#{code}".red else "#{code}".green
+      database.remove worker.agent.id
+      onExit 
+        agent: worker.agent
+        code: code
+        signal: signal
+      spawn()
 
     i = 0
     while i++ < workersByMachine
       spawn()
     @emit 'ready'
 
-  onMsg: (agent, msg) => 
-    #console.log "agent #{agent.id} want to transmit a message: #{msg.msg}"
-  onFork: (agent, onComplete) => 
-    #console.log "agent want to fork"
-    onComplete yes
-    yes
-  onDie: (agent, onComplete) => 
-    #console.log "agent #{agent.id} want to die: #{msg.die}"
-    onComplete yes
-
-  size: => @database.length
-
-  add: (agent) =>
-    @database.add agent
-
-  remove: (agent) =>
-    @database.remove agent
-
+  size  :            => @database.length
+  add   : (agent)    => @database.add    agent
+  remove: (agent)    => @database.remove agent
   agents: (property) => @database.agents property
-  reduce: (f) => @database.reduce f
-  max: (f) => @database.max f
-  min: (f) => @database.min f
-  each: (f) => @database.each f
-
-
+  reduce: (f)        => @database.reduce f
+  max   : (f)        => @database.max    f
+  min   : (f)        => @database.min    f
+  each  : (f)        => @database.each   f
 
 module.exports = (args) -> new Master args
