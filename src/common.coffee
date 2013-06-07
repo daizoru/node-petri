@@ -31,7 +31,6 @@ isArray     = exports.isArray     = (obj) -> Array.isArray obj
 isString    = exports.isString    = (obj) -> !!(obj is '' or (obj and obj.charCodeAt and obj.substr))
 isNumber    = exports.isNumber    = (obj) -> (obj is +obj) or toString.call(obj) is '[object Number]'
 isBoolean   = exports.isBoolean   = (obj) -> obj is true or obj is false
-isString    = exports.isString    = (obj) -> !!(obj is '' or (obj and obj.charCodeAt and obj.substr))
 toStr       = exports.toStr       = (func) -> func.toString()
 
 round = exports.round = (value, d = 4) ->
@@ -67,5 +66,5 @@ shuffle = exports.shuffle = deck.shuffle
 
 pretty = exports.pretty   = (obj) -> "#{inspect obj, no, 20, yes}"
   
-readFile = exports.readFile = (f) -> fs.readFileSync input, "utf8"
+readFile = exports.readFile = (input) -> fs.readFileSync input, "utf8"
 
