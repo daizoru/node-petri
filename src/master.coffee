@@ -50,11 +50,7 @@ class Master extends Stream
     cluster.on "exit", (worker, code, signal) -> 
       log "worker #{sha1 worker.src} exited: " + if code > 0 then "#{code}".red else "#{code}".green
       process.nextTick ->
-        callbacks.onExit
-          worker: worker
-          src: worker.src
-          code: code
-          signal: signal
+        callbacks.onExit worker, worker.src, code, signal
 
     main.apply 
 
