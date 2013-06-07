@@ -4,6 +4,22 @@ os        = require 'os'
 
 deck      = require 'deck'
 
+every = exports.every = (ft) -> setInterval ft...
+after = exports.after = (ft) -> setTimeout  ft...
+
+# Magic Number
+Number::ms      = (f) -> [f, 1 * @]
+Number::second  = (f) -> [f, 1000 * @]
+Number::seconds = (f) -> [f, 1000 * @]
+Number::sec     = (f) -> [f, 1000 * @]
+Number::minute  = (f) -> [f, 60000 * @]
+Number::minutes = (f) -> [f, 60000 * @]
+Number::min     = (f) -> [f, 60000 * @]
+Number::hour    = (f) -> [f, 86400000 * @]
+Number::hours   = (f) -> [f, 86400000 * @]
+Number::day     = (f) -> [f, 86400000 * @]
+Number::days    = (f) -> [f, 86400000 * @]
+
 # make a random, mostly unique id
 makeId = exports.makeId = -> (Number) ("#{new Date().valueOf()}#{Math.round(Math.random() * 10000)}")
 
@@ -51,5 +67,5 @@ shuffle = exports.shuffle = deck.shuffle
 
 pretty = exports.pretty   = (obj) -> "#{inspect obj, no, 20, yes}"
   
-
 readFile = exports.readFile = (f) -> fs.readFileSync input, "utf8"
+

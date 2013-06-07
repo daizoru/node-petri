@@ -19,7 +19,7 @@ exports.Stats    = Stats
 exports.errors   = errors
 
 
-exports.System = (options={}) ->
+exports.Petri = (options={}) ->
   if cluster.isMaster 
     Master(options) 
   else 
