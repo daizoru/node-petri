@@ -25,7 +25,8 @@
     "deck": "0.0.4",
     "node-v8-clone": "0.4.5",
     "coffee-script": "~1.6.3",
-    "natural": "~0.1.21"
+    "natural": "~0.1.21",
+    "colors": "~0.6.0-1"
   },
   "devDependencies": {
     "coffee-script": "1.6.x",

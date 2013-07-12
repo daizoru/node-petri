@@ -27,33 +27,16 @@ Petri ->
   pool = {}
 
   # initialize using the source code of a program
-  pool["#{require('./SOME/SOURCE/FILE')}"] = 1
+  pool[require './SOME/MODULE'] = 1
 
-  @spawn() for i in [0...pool_size]
+  for i in [0...pool_size]
+    @spawn
+      src: pick pool
+      hello: 'world'
 
   # subscribe to the "agent died" event
   @on 'exit', (worker, src, code, signal) =>
     console.log "Agent terminated with exit code: #{code}"
-
-    # spawn a new agent to remplace the dead one
-    @spawn()
-
-  # subscribe to the "agent is ready" event
-  # agent that emit this event are uninitialized:
-  # you have to call onComplete with a config
-  @on 'ready', (onComplete) ->
-
-    console.log "Agent ready, configuring.."
-
-    onComplete
-
-      # setting the source is mandatory
-      # (it is used as an unique DNA-like identificator)
-      src: pick pool
-
-      # other stuff you want to pass to the agent
-      foo: 'foo'
-      bar: 'bar'
 
   # subscribe to the "agent is sending a message" event
   # 'reply' is a function you can use to reply to the agent
