@@ -40,15 +40,15 @@ Petri ->
 
   # subscribe to the "agent is sending a message" event
   # 'reply' is a function you can use to reply to the agent
-  @on 'data', (reply, src, packet) ->
+  @on 'data', (reply, agent, msg) ->
 
-    switch packet.cmd
+    switch msg.cmd
 
       when 'log'
-        console.log "#{packet.msg}"
+        console.log "#{msg.msg}"
 
       else
-        console.log "unknow cmd #{pretty packet}"
+        console.log "unknow cmd #{pretty msg}"
 
   # some syntactic sugar for looping every 5 seconds
   # try it with other values like 200.ms or 1.min to see the changes
