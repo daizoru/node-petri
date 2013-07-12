@@ -25,24 +25,30 @@ module.exports = ->
   process.on 'message', (raw) -> 
 
     msg = JSON.parse raw
+
     switch msg.cmd
       when 'spawn'
-        console.log "worker: spawning"
-        agent.sha = sha1 msg.src
+        agent.sha = msg.sha
         agent.src = msg.src
-        agent.name = "#{agent.sha}"[-8..]
-        context = {}
-        context.emit = emit 
-        context.logger =
-          failure: (msg) -> context.emit cmd: 'log', level: 0, msg: "#{msg}".red
-          warn   : (msg) -> context.emit cmd: 'log', level: 1, msg: "#{msg}".yellow
-          success: (msg) -> context.emit cmd: 'log', level: 2, msg: "#{msg}".green
-          info   : (msg) -> context.emit cmd: 'log', level: 2, msg: "#{msg}"
-          debug  : (msg) -> context.emit cmd: 'log', level: 3, msg: "#{msg}".grey
-        every 5.sec -> emit cmd: 'ping'
+        agent.name = msg.name
+        context =
+          emit: emit 
+          src: msg.src
+          logger:
+            failure: (msg) -> emit cmd: 'failure', msg: msg.toString()
+            warn   : (msg) -> emit cmd: 'warn', msg: msg.toString()
+            success: (msg) -> emit cmd: 'success', msg: msg.toString()
+            info   : (msg) -> emit cmd: 'info', msg: msg.toString()
+            debug  : (msg) -> emit cmd: 'debug', msg: msg.toString()
+        every 3.sec -> emit cmd: 'ping'
         eval "var Agent = #{msg.src};"
-        #localLog "spawned agent #{pretty agentMeta.name}, gen #{pretty agentMeta.generation}"
+        console.log "spawned #{pretty agent.name}"
+        #try
         Agent.apply context, [ msg ]
+        #catch err
+        #  console.log "failed: #{err}"
+        #  context.logger.failure "#{err}"
+        #  process.exit 2
 
       else
         for listener in (agent.listeners[msg.cmd] ? [])

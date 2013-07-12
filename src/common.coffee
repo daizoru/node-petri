@@ -1,8 +1,24 @@
 {inspect} = require 'util'
 crypto    = require 'crypto'
 os        = require 'os'
+fs        = require 'fs'
 
 deck      = require 'deck'
+natural   = require 'natural'
+clone     = require('node-v8-clone').clone
+
+log = exports.log = console.log 
+
+normalize = exports.normalize = deck.normalize
+
+distance = exports.distance = (a, b) ->
+  if isString(a) and isString(b)
+    1.0 - natural.JaroWinklerDistance a, b
+  else
+    console.log "dist(#{a},#{b})"
+    a = (Number) a
+    b = (Number) b
+    Math.abs Math.log(b) - Math.log(a)
 
 every = exports.every = (ft) -> setInterval ft...
 after = exports.after = (ft) -> setTimeout  ft...
@@ -23,7 +39,8 @@ Number::days    = (f) -> [f, 86400000 * @]
 # make a random, mostly unique id
 makeId = exports.makeId = -> (Number) ("#{new Date().valueOf()}#{Math.round(Math.random() * 10000)}")
 
-copy        = exports.copy        = (a) -> JSON.parse(JSON.stringify(a))
+copy        = exports.copy        = (a) -> clone a, yes
+
 P           = exports.P           = (p=0.5) -> + (Math.random() < p)
 isFunction  = exports.isFunction  = (obj) -> !!(obj and obj.constructor and obj.call and obj.apply)
 isUndefined = exports.isUndefined = (obj) -> typeof obj is 'undefined'
@@ -66,5 +83,16 @@ shuffle = exports.shuffle = deck.shuffle
 
 pretty = exports.pretty   = (obj) -> "#{inspect obj, no, 20, yes}"
   
+prettyCode = exports.prettyCode = (code) ->
+  lines = for line in code[0].toString().split '\n'
+    line.trim()
+
+  str = lines[1...lines.length - 1].join ''
+  if str is ''
+    str = '[native code]'
+  pretty [str].concat code[1...]
+
 readFile = exports.readFile = (input) -> fs.readFileSync input, "utf8"
 
+isValidNumber = exports.isValidNumber = (value) ->
+  value? and !isNaN(value) and isFinite(value)
