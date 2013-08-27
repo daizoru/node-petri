@@ -21,21 +21,25 @@ class Master extends Stream
       onData: ->
 
     actions =
-      spawn: (agent) =>
+      spawn: (src, params) =>
         #console.log "debug: spawning.."
         worker = cluster.fork()
-        agent.src = agent.src.toString() # automatically converts functions to source code
+        agent = {}
+        agent.src = src.toString() # automatically converts functions to source code
         agent.sha = sha1 agent.src
         agent.name = "#{agent.sha}"[-8..]
-        agent.cmd = 'spawn'
         agent.slot = worker.id
         worker.agent = agent
+        #agent.worker = worker
 
         worker.on 'message', (raw) =>
           msg = JSON.parse raw
           switch msg.cmd
             when 'ready'
-              worker.send JSON.stringify worker.agent
+              worker.send JSON.stringify 
+                cmd: 'spawn'
+                agent: worker.agent
+                params: params
             when 'ping'
               log worker.agent.name, "PING worker is still alive"
 
@@ -57,6 +61,12 @@ class Master extends Stream
             else
               reply = (msg) -> worker.send JSON.stringify msg
               callbacks.onData reply, worker.agent, msg
+
+        # extends worker with an utility function
+        worker.die = (msg) -> worker.send JSON.stringify die: msg
+
+        worker
+
       # broadcast
       broadcast: (msg) ->
         console.log "debug: broadcasting.."

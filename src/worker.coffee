@@ -24,16 +24,32 @@ module.exports = ->
   spawned = no
   process.on 'message', (raw) -> 
 
-    msg = JSON.parse raw
 
+    msg = JSON.parse raw
+    #console.log "msg: #{pretty msg}"
+    #console.log "msg.cmd: #{msg.cmd}"
     switch msg.cmd
+      when 'die'
+        emit cmd: 'warn', msg: 'master asked me to die'
+        process.exit -1
+
       when 'spawn'
-        agent.sha = msg.sha
-        agent.src = msg.src
-        agent.name = msg.name
+        #console.log "spawning.."
+        for k,v of msg.agent
+          continue if k is 'listeners'
+          agent[k] = v
+
+        unless agent.src
+          emit cms: 'failure', msg: "no src found in params passed ot the spawn()"
+          process.exit -1
+        #agent.sha = msg.agent.sha
+        #agent.src = msg.agent.src
+        #agent.name = msg.agent.name
+        #agent.slot = msg.agent.slot
+
         context =
           emit: emit 
-          src: msg.src
+          src: agent.src
           logger:
             failure: (msg) -> emit cmd: 'failure', msg: msg.toString()
             warn   : (msg) -> emit cmd: 'warn', msg: msg.toString()
@@ -41,10 +57,10 @@ module.exports = ->
             info   : (msg) -> emit cmd: 'info', msg: msg.toString()
             debug  : (msg) -> emit cmd: 'debug', msg: msg.toString()
         every 3.sec -> emit cmd: 'ping'
-        eval "var Agent = #{msg.src};"
+        eval "var Agent = #{agent.src};"
         console.log "spawned #{pretty agent.name}"
         #try
-        Agent.apply context, [ msg ]
+        Agent.apply context, [msg.params]
         #catch err
         #  console.log "failed: #{err}"
         #  context.logger.failure "#{err}"
