@@ -4,9 +4,6 @@ cluster           = require 'cluster'
 # third parties libs
 colors            = require 'colors'
 
-# third parties libs (in-house!)
-{mutable,mutate}  = require 'evolve'
-
 {P, makeId, sha1, pick, every, pretty, log} = require './common'
 
 module.exports = ->
