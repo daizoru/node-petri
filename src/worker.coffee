@@ -42,6 +42,18 @@ module.exports = ->
         unless agent.src
           emit cms: 'failure', msg: "no src found in params passed ot the spawn()"
           process.exit -1
+        
+        
+        # let's see if the user is trying to load a constant (immutable) module
+        try
+          loaded = require agent.src
+          if loaded
+            agent.src = loaded.toString()
+          else
+            log "loaded a module, but it is empty"
+
+        catch err
+          log "this is not a module"
         #agent.sha = msg.agent.sha
         #agent.src = msg.agent.src
         #agent.name = msg.agent.name
