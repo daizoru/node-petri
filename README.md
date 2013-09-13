@@ -15,48 +15,59 @@ For now this is mostly wrapper around Node Cluster, with some syntactic sugar
 
 ```coffeescript
 {Petri, common} = require 'petri'
-
-# common contains a collection of useful functions
-# some do magic stuff, like extending Number's prototype
-{every, pick} = common
+{every, pick, pretty} = common
+log = console.log
 
 Petri ->
-  console.log "Initializing"
+  log "Initializing"
 
-  pool_size = 3
-  pool = {}
 
-  # initialize using the source code of a program
-  pool[require './SOME/MODULE'] = 1
+  # start 2 processes
+  for _ in [0...2]
 
-  for i in [0...pool_size]
-    @spawn
-      src: pick pool
-      hello: 'world'
+    # module can be either a module name, or a module instance
+    # module = require './my/program'
+    module = './my/program'
 
-  # subscribe to the "agent died" event
-  @on 'exit', (worker, src, code, signal) =>
-    console.log "Agent terminated with exit code: #{code}"
+    log "spawning agent.."
+    worker = @spawn module, hello: 'world'
+    worker.on 'exit', -> log "agent died"
 
-  # subscribe to the "agent is sending a message" event
-  # 'reply' is a function you can use to reply to the agent
   @on 'data', (reply, agent, msg) ->
-
     switch msg.cmd
-
       when 'log'
-        console.log "#{msg.msg}"
-
+        log pretty msg.msg
+      when 'hello'
+        log "agent #{agent.id} said hello: " + pretty msg.msg
       else
-        console.log "unknow cmd #{pretty msg}"
+        log "unknow cmd: " + pretty msg
 
-  # some syntactic sugar for looping every 5 seconds
-  # try it with other values like 200.ms or 1.min to see the changes
-  every 5.sec =>
+  # send a command to all agents, every 5 seconds
+  every 5.sec => @broadcast cmd: "foobar", data: "foo": "bar"
+```
 
-    console.log "broadcasting to all agents"
 
-    @broadcast cmd: "foobar", data: "hello world"
+### Agent (code describing an agent)
+
+```coffeescript
+module.exports = (opts) ->
+
+  {failure, warn, success, info, debug}  = @logger
+
+  {pretty} = require('petri').common
+
+  # these will appear in colors in the terminal
+  info    "hello, I do nothing"
+  debug   "got some options: " + pretty opts
+  warn    "woops something gone wrong"
+
+  # emit a message, will be received by the master
+  @emit cmd: "hello", foo: "bar"
+
+  failure "what the heck?!"
+
+  # kill the agent
+  process.exit -1
 ```
 
 ## Documentation
