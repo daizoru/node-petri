@@ -8,7 +8,7 @@ Worker = require './worker'
 
 exports.common = require './common'
 
-exports.Petri = (options={}) ->
+exports.Petri = (opts={}) ->
   if cluster.isMaster then Master(opts) else Worker()
 
 exports.isMaster = cluster.isMaster
