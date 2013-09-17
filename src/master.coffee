@@ -23,7 +23,10 @@ class Master extends Stream
     actions =
       spawn: (src, params) =>
         #console.log "debug: spawning.."
-        worker = cluster.fork()
+        #console.log "PARENT PATH: #{process.env.PWD}"
+        #path = "#{require('path').dirname(require.main.filename)}../node_modules/"
+        #console.log "master req: " + path
+        worker = cluster.fork() # process.env
         agent = {}
         agent.src = src.toString() # automatically converts functions to source code
         agent.sha = sha1 agent.src
@@ -31,6 +34,8 @@ class Master extends Stream
         agent.slot = worker.id
         worker.agent = agent
         #agent.worker = worker
+
+        #foo = require 'reservoirjs'
 
         worker.on 'message', (raw) =>
           msg = JSON.parse raw
