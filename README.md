@@ -3,6 +3,8 @@
 
 *a multi-agent system for Node*
 
+[![NPM](https://nodei.co/npm/petri.png?downloads=true&stars=true)](https://nodei.co/npm/petri/)
+
 ## Description
 
 For now this is mostly wrapper around Node Cluster, with some syntactic sugar
